@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     description: "Noticias deportivas en tiempo real",
     type: "website",
   },
+  other: {
+    "google-adsense-account": "ca-pub-4263994931469963",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

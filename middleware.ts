@@ -17,7 +17,7 @@ function getLocale(request: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const pathnameHasLocale = LOCALES.some(
@@ -34,5 +34,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icons|images).*)"],
+  // Exclude: API routes, Next.js internals, static assets, and Google verification files
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|icons|images|ads\\.txt|robots\\.txt|sitemap\\.xml).*)",
+  ],
 };
