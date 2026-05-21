@@ -24,8 +24,8 @@ export default async function MarcadoresPage({ params }: { params: Promise<{ lan
             Marcadores en Vivo
           </h1>
           <p className="text-gray-400 text-sm mt-1">
-            LaLiga · Champions · Premier · Serie A · Bundesliga · NBA · ACB
-            <span className="ml-2 text-emerald-500">· Actualización cada 30 segundos</span>
+            LaLiga · Champions · Premier · Serie A · Bundesliga · NBA · ATP · WTA
+            <span className="ml-2 text-emerald-500">· Actualización en tiempo real</span>
           </p>
         </div>
       </div>
@@ -50,8 +50,8 @@ export default async function MarcadoresPage({ params }: { params: Promise<{ lan
                 { name: "🇩🇪 Bundesliga", live: true },
                 { name: "🇫🇷 Ligue 1", live: true },
                 { name: "🏀 NBA", live: true },
-                { name: "🇪🇺 EuroLeague", live: false },
-                { name: "🇪🇸 ACB", live: false },
+                { name: "🎾 ATP", live: true },
+                { name: "🎾 WTA", live: true },
               ].map((l) => (
                 <div key={l.name} className="flex items-center justify-between text-xs">
                   <span className="text-gray-300">{l.name}</span>

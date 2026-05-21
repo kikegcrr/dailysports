@@ -10,12 +10,14 @@ const LEAGUE_LABELS: Record<string, string> = {
   seriea: "Serie A", bundesliga: "Bundesliga", ligue1: "Ligue 1",
   ligaportugal: "Liga Portugal", europa: "Europa League",
   libertadores: "Libertadores", nba: "NBA", acb: "ACB",
+  atp: "ATP", wta: "WTA",
 };
 
 const LEAGUE_COLORS: Record<string, string> = {
   laliga: "text-red-400", champions: "text-blue-400", premier: "text-purple-400",
   seriea: "text-blue-300", bundesliga: "text-red-300", ligue1: "text-blue-200",
   nba: "text-orange-400", acb: "text-red-400",
+  atp: "text-yellow-400", wta: "text-pink-400",
 };
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -27,7 +29,7 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 
 interface MatchCardProps {
   match: LiveMatch;
-  sport?: "football" | "basketball";
+  sport?: "football" | "basketball" | "tennis";
   featured?: boolean;
 }
 
@@ -98,8 +100,13 @@ export default function MatchCard({ match, sport = "football", featured }: Match
           </div>
         </div>
 
-        {/* Events summary */}
-        {match.events.length > 0 && (
+        {/* Events summary (football/basketball) or set scores (tennis) */}
+        {sport === "tennis" && match.minute && (
+          <div className="mt-2 text-xs text-gray-400 font-mono tracking-wider">
+            🎾 {match.minute}
+          </div>
+        )}
+        {sport !== "tennis" && match.events.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {match.events.slice(0, 5).map((event, i) => (
               <span key={i} className="text-xs text-gray-500">
@@ -117,7 +124,37 @@ export default function MatchCard({ match, sport = "football", featured }: Match
       {/* Expanded interactive view */}
       {expanded && (
         <div className="border-t border-sport-border animate-slide-up">
-          {sport === "football" ? (
+          {sport === "tennis" ? (
+            <div className="p-4 space-y-3">
+              <p className="text-xs font-semibold text-yellow-400 uppercase tracking-wider">
+                🎾 {match.leagueName}
+              </p>
+              {match.minute && (
+                <div className="bg-sport-border/40 rounded-xl p-3">
+                  <p className="text-xs text-gray-500 mb-1">Resultado por sets</p>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <p className="text-sm font-semibold text-white truncate">{match.home.name}</p>
+                    <div className="flex gap-2 text-center">
+                      {match.minute.split(" ").map((set, i) => {
+                        const [s1, s2] = set.split("-").map(Number);
+                        return (
+                          <div key={i} className="flex flex-col items-center">
+                            <span className={`text-sm font-bold ${s1 > s2 ? "text-white" : "text-gray-500"}`}>{s1}</span>
+                            <span className="text-xs text-gray-700">S{i + 1}</span>
+                            <span className={`text-sm font-bold ${s2 > s1 ? "text-white" : "text-gray-500"}`}>{s2}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-sm font-semibold text-white truncate text-right">{match.away.name}</p>
+                  </div>
+                </div>
+              )}
+              {match.venue && (
+                <p className="text-xs text-gray-600">📍 {match.venue}</p>
+              )}
+            </div>
+          ) : sport === "football" ? (
             <div className="p-4">
               <InteractivePitch match={match} />
             </div>

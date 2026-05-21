@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "**.marca.com" },
+      { protocol: "https", hostname: "**.estaticos-marca.com" },
       { protocol: "https", hostname: "**.as.com" },
       { protocol: "https", hostname: "**.sport.es" },
       { protocol: "https", hostname: "**.mundodeportivo.com" },
@@ -19,6 +20,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "a.espncdn.com" },
       { protocol: "https", hostname: "**.espn.com" },
       { protocol: "https", hostname: "placehold.co" },
+      { protocol: "https", hostname: "unavatar.io" },
+      { protocol: "https", hostname: "ui-avatars.com" },
     ],
   },
 };

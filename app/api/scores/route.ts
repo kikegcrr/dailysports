@@ -19,6 +19,11 @@ const BASKETBALL_LEAGUES: Record<string, string> = {
   nba: "basketball/nba",
 };
 
+const TENNIS_LEAGUES: Record<string, string> = {
+  atp: "tennis/atp",
+  wta: "tennis/wta",
+};
+
 export type MatchStatus = "scheduled" | "live" | "halftime" | "finished";
 
 export interface MatchEvent {
@@ -139,13 +144,70 @@ function parseMatch(event: any, leagueName: string): LiveMatch {
   };
 }
 
-async function fetchLeague(leagueKey: string, path: string): Promise<LiveMatch[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseTennisEvent(event: any, leagueKey: string): LiveMatch[] {
+  const tournament = event.name ?? leagueKey;
+  const matches: LiveMatch[] = [];
+
+  for (const grouping of event.groupings ?? []) {
+    for (const comp of grouping.competitions ?? []) {
+      const [p1, p2] = (comp.competitors ?? []).slice(0, 2);
+      if (!p1 || !p2) continue;
+
+      const statusName: string = comp.status?.type?.name ?? "";
+      const status = parseStatus(statusName);
+
+      const p1Scores: number[] = (p1.linescores ?? []).map((s: { value: number }) => s.value);
+      const p2Scores: number[] = (p2.linescores ?? []).map((s: { value: number }) => s.value);
+
+      let p1Sets = 0, p2Sets = 0;
+      const setLen = Math.max(p1Scores.length, p2Scores.length);
+      for (let i = 0; i < setLen; i++) {
+        if ((p1Scores[i] ?? 0) > (p2Scores[i] ?? 0)) p1Sets++;
+        else if ((p2Scores[i] ?? 0) > (p1Scores[i] ?? 0)) p2Sets++;
+      }
+
+      // Build readable set scores: "6-4 6-1"
+      const setStr = p1Scores.map((s, i) => `${s}-${p2Scores[i] ?? 0}`).join(" ");
+
+      matches.push({
+        id: comp.id ?? `${event.id}-${matches.length}`,
+        league: leagueKey,
+        leagueName: tournament,
+        status,
+        minute: setStr || undefined,
+        period: comp.status?.period,
+        home: {
+          name: p1.athlete?.displayName ?? "Player 1",
+          shortName: p1.athlete?.shortName ?? "P1",
+          logo: p1.athlete?.flag?.href ?? "",
+          score: String(p1Sets),
+        },
+        away: {
+          name: p2.athlete?.displayName ?? "Player 2",
+          shortName: p2.athlete?.shortName ?? "P2",
+          logo: p2.athlete?.flag?.href ?? "",
+          score: String(p2Sets),
+        },
+        events: [],
+        startTime: comp.date,
+        venue: comp.venue?.fullName,
+      });
+    }
+  }
+  return matches;
+}
+
+async function fetchLeague(leagueKey: string, path: string, isTennis = false): Promise<LiveMatch[]> {
   try {
     const res = await fetch(`${ESPN_BASE}/${path}/scoreboard`, {
       next: { revalidate: 30 },
     });
     if (!res.ok) return [];
     const json = await res.json();
+    if (isTennis) {
+      return (json.events ?? []).flatMap((e: unknown) => parseTennisEvent(e, leagueKey));
+    }
     return (json.events || []).map((e: unknown) => parseMatch(e, leagueKey));
   } catch {
     return [];
@@ -160,22 +222,23 @@ export async function GET(request: NextRequest) {
   const tasks: Promise<LiveMatch[]>[] = [];
 
   if (sport === "all" || sport === "football") {
-    const footballLeagues = league
-      ? { [league]: FOOTBALL_LEAGUES[league] }
-      : FOOTBALL_LEAGUES;
-
-    for (const [key, path] of Object.entries(footballLeagues)) {
-      tasks.push(fetchLeague(key, path));
+    const leagues = league ? { [league]: FOOTBALL_LEAGUES[league] } : FOOTBALL_LEAGUES;
+    for (const [key, path] of Object.entries(leagues)) {
+      if (path) tasks.push(fetchLeague(key, path));
     }
   }
 
   if (sport === "all" || sport === "basketball") {
-    const basketballLeagues = league
-      ? { [league]: BASKETBALL_LEAGUES[league] }
-      : BASKETBALL_LEAGUES;
+    const leagues = league ? { [league]: BASKETBALL_LEAGUES[league] } : BASKETBALL_LEAGUES;
+    for (const [key, path] of Object.entries(leagues)) {
+      if (path) tasks.push(fetchLeague(key, path));
+    }
+  }
 
-    for (const [key, path] of Object.entries(basketballLeagues)) {
-      tasks.push(fetchLeague(key, path));
+  if (sport === "all" || sport === "tennis") {
+    const leagues = league ? { [league]: TENNIS_LEAGUES[league] } : TENNIS_LEAGUES;
+    for (const [key, path] of Object.entries(leagues)) {
+      if (path) tasks.push(fetchLeague(key, path, true));
     }
   }
 
@@ -184,7 +247,6 @@ export async function GET(request: NextRequest) {
     .filter((r): r is PromiseFulfilledResult<LiveMatch[]> => r.status === "fulfilled")
     .flatMap((r) => r.value);
 
-  // Sort: live first, then halftime, then scheduled, then finished
   const order: Record<MatchStatus, number> = { live: 0, halftime: 1, scheduled: 2, finished: 3 };
   allMatches.sort((a, b) => order[a.status] - order[b.status]);
 
