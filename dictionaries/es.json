@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "football": "Fútbol",
+    "basketball": "Baloncesto",
+    "other": "Otros Deportes",
+    "social": "Social",
+    "creators": "Creadores",
+    "forums": "Foros",
+    "profile": "Mi Perfil",
+    "saved": "Guardados",
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar Sesión"
+  },
+  "home": {
+    "hero": "Las noticias deportivas más importantes",
+    "breaking": "ÚLTIMA HORA",
+    "featured": "Destacado",
+    "latest": "Lo Último",
+    "football": "Fútbol",
+    "basketball": "Baloncesto",
+    "other": "Otros",
+    "readMore": "Leer más",
+    "refresh": "Actualizar",
+    "updatedAgo": "Actualizado hace",
+    "minutes": "minutos"
+  },
+  "social": {
+    "title": "Contenido Social",
+    "subtitle": "Los mejores clips, debates y podcasts deportivos",
+    "youtube": "YouTube",
+    "twitch": "Twitch",
+    "twitter": "Twitter / X",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "creators": "Creadores & Horarios",
+    "watchNow": "Ver ahora",
+    "follow": "Seguir"
+  },
+  "creators": {
+    "title": "Creadores de Contenido",
+    "subtitle": "Sigue tus creadores favoritos, sus horarios y publicaciones",
+    "schedule": "Próximos directos",
+    "latestPosts": "Últimas publicaciones",
+    "promote": "Promocionar mi perfil",
+    "sports": "Deportes",
+    "platform": "Plataforma",
+    "followers": "seguidores"
+  },
+  "forums": {
+    "title": "Foros Deportivos",
+    "subtitle": "Debate con la comunidad sobre tus equipos y deportes favoritos",
+    "newThread": "Nuevo hilo",
+    "reply": "Responder",
+    "replies": "respuestas",
+    "views": "visitas",
+    "lastReply": "Última respuesta",
+    "by": "por",
+    "writeNews": "Redacta tu noticia",
+    "topics": {
+      "laliga": "LaLiga",
+      "champions": "Champions League",
+      "realmadrid": "Real Madrid",
+      "barcelona": "FC Barcelona",
+      "atletico": "Atlético Madrid",
+      "premierleague": "Premier League",
+      "nba": "NBA",
+      "acb": "ACB",
+      "mundial": "Mundial",
+      "eurobasket": "EuroBasket",
+      "other": "Otros Deportes"
+    }
+  },
+  "auth": {
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "username": "Nombre de usuario",
+    "loginTitle": "Iniciar Sesión",
+    "registerTitle": "Crear Cuenta",
+    "loginBtn": "Entrar",
+    "registerBtn": "Crear Cuenta",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "noAccount": "¿No tienes cuenta?",
+    "forgotPassword": "¿Olvidaste tu contraseña?"
+  },
+  "profile": {
+    "title": "Mi Perfil",
+    "favoriteTeams": "Equipos Favoritos",
+    "favoriteCreators": "Creadores Favoritos",
+    "savedArticles": "Artículos Guardados",
+    "myPosts": "Mis Posts en Foros"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error al cargar contenido",
+    "noContent": "No hay contenido disponible",
+    "save": "Guardar",
+    "share": "Compartir",
+    "source": "Fuente",
+    "ago": "hace",
+    "hours": "horas",
+    "days": "días"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Home",
+    "football": "Football",
+    "basketball": "Basketball",
+    "other": "Other Sports",
+    "social": "Social",
+    "creators": "Creators",
+    "forums": "Forums",
+    "profile": "My Profile",
+    "saved": "Saved",
+    "login": "Log In",
+    "register": "Sign Up",
+    "logout": "Log Out"
+  },
+  "home": {
+    "hero": "The most important sports news",
+    "breaking": "BREAKING",
+    "featured": "Featured",
+    "latest": "Latest",
+    "football": "Football",
+    "basketball": "Basketball",
+    "other": "Other",
+    "readMore": "Read more",
+    "refresh": "Refresh",
+    "updatedAgo": "Updated",
+    "minutes": "minutes ago"
+  },
+  "social": {
+    "title": "Social Content",
+    "subtitle": "Best sports clips, debates and podcasts",
+    "youtube": "YouTube",
+    "twitch": "Twitch",
+    "twitter": "Twitter / X",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "creators": "Creators & Schedules",
+    "watchNow": "Watch now",
+    "follow": "Follow"
+  },
+  "creators": {
+    "title": "Content Creators",
+    "subtitle": "Follow your favourite creators, schedules and posts",
+    "schedule": "Upcoming streams",
+    "latestPosts": "Latest posts",
+    "promote": "Promote my profile",
+    "sports": "Sports",
+    "platform": "Platform",
+    "followers": "followers"
+  },
+  "forums": {
+    "title": "Sports Forums",
+    "subtitle": "Debate with the community about your favourite teams and sports",
+    "newThread": "New thread",
+    "reply": "Reply",
+    "replies": "replies",
+    "views": "views",
+    "lastReply": "Last reply",
+    "by": "by",
+    "writeNews": "Write your news",
+    "topics": {
+      "laliga": "LaLiga",
+      "champions": "Champions League",
+      "realmadrid": "Real Madrid",
+      "barcelona": "FC Barcelona",
+      "atletico": "Atlético Madrid",
+      "premierleague": "Premier League",
+      "nba": "NBA",
+      "acb": "ACB",
+      "mundial": "World Cup",
+      "eurobasket": "EuroBasket",
+      "other": "Other Sports"
+    }
+  },
+  "auth": {
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "username": "Username",
+    "loginTitle": "Log In",
+    "registerTitle": "Create Account",
+    "loginBtn": "Log In",
+    "registerBtn": "Create Account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "forgotPassword": "Forgot your password?"
+  },
+  "profile": {
+    "title": "My Profile",
+    "favoriteTeams": "Favourite Teams",
+    "favoriteCreators": "Favourite Creators",
+    "savedArticles": "Saved Articles",
+    "myPosts": "My Forum Posts"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error loading content",
+    "noContent": "No content available",
+    "save": "Save",
+    "share": "Share",
+    "source": "Source",
+    "ago": "",
+    "hours": "hours ago",
+    "days": "days ago"
+  }
+}
