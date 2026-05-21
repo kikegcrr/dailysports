@@ -58,11 +58,17 @@ export default function Footer({ lang }: { lang: string }) {
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Fuentes</h4>
+            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Legal</h4>
             <ul className="space-y-2">
-              {["Marca", "AS", "Sport", "Mundo Deportivo", "Basket Plus"].map((s) => (
-                <li key={s}>
-                  <span className="text-sm text-gray-500">{s}</span>
+              {[
+                { href: `/${lang}/sobre`, label: "ℹ️ Acerca de" },
+                { href: `/${lang}/contacto`, label: "✉️ Contacto" },
+                { href: `/${lang}/privacidad`, label: "🔒 Privacidad" },
+              ].map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-sm text-gray-400 hover:text-gold-400 transition-colors">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -73,9 +79,11 @@ export default function Footer({ lang }: { lang: string }) {
           <p className="text-xs text-gray-600">
             © {new Date().getFullYear()} dailySports. Agregador de noticias deportivas.
           </p>
-          <p className="text-xs text-gray-700">
-            Actualización automática cada 10 minutos · RSS + Social Media
-          </p>
+          <div className="flex items-center gap-4">
+            <Link href={`/${lang}/privacidad`} className="text-xs text-gray-700 hover:text-gray-500 transition-colors">Privacidad</Link>
+            <Link href={`/${lang}/contacto`} className="text-xs text-gray-700 hover:text-gray-500 transition-colors">Contacto</Link>
+            <Link href={`/${lang}/sobre`} className="text-xs text-gray-700 hover:text-gray-500 transition-colors">Acerca de</Link>
+          </div>
         </div>
       </div>
     </footer>
