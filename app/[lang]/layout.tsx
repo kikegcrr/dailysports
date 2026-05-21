@@ -3,6 +3,7 @@ import { hasLocale, getDictionary, Locale } from "@/lib/dictionaries";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import TickerBar from "@/components/layout/TickerBar";
+import VoiceReader from "@/components/ui/VoiceReader";
 
 export default async function LocaleLayout({
   children,
@@ -24,6 +25,7 @@ export default async function LocaleLayout({
         {children}
       </main>
       <Footer lang={lang} />
+      <VoiceReader />
     </div>
   );
 }

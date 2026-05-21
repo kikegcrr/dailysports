@@ -20,10 +20,11 @@ export default function Header({ lang, dict }: { lang: string; dict: Record<stri
 
   const nav: NavItem[] = [
     { href: `/${lang}`, label: dict.home, icon: <Home size={16} /> },
+    { href: `/${lang}/marcadores`, label: "Marcadores", icon: <span>🔴</span> },
     { href: `/${lang}/futbol`, label: dict.football, icon: <span>⚽</span> },
     { href: `/${lang}/baloncesto`, label: dict.basketball, icon: <span>🏀</span> },
-    { href: `/${lang}/otros`, label: dict.other, icon: <Trophy size={16} /> },
-    { href: `/${lang}/social`, label: dict.social, icon: <Tv2 size={16} /> },
+    { href: `/${lang}/directo`, label: "En Vivo", icon: <Tv2 size={16} /> },
+    { href: `/${lang}/social`, label: dict.social, icon: <span>📱</span> },
     { href: `/${lang}/foros`, label: dict.forums, icon: <MessageSquare size={16} /> },
   ];
 
