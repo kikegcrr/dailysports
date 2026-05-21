@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, X, Volume2, SkipBack, SkipForward, ChevronUp, ChevronDown, Mic } from "lucide-react";
+import { Play, Pause, X, Volume2, SkipBack, Mic, ChevronUp, ChevronDown } from "lucide-react";
 
 interface Voice {
   id: string;
@@ -14,41 +14,37 @@ interface VoiceReaderProps {
   title?: string;
 }
 
-const WEB_SPEECH_VOICES = [
-  { id: "ws-es-1", name: "Comentarista Latino", description: "Energía alta, ritmo deportivo", emoji: "⚽", pitch: 1.1, rate: 1.1, lang: "es-ES" },
-  { id: "ws-es-2", name: "Narrador Épico", description: "Tono grave y épico", emoji: "🎙️", pitch: 0.8, rate: 0.9, lang: "es-ES" },
-  { id: "ws-en-1", name: "British Commentator", description: "Estilo Premier League", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pitch: 1.0, rate: 0.95, lang: "en-GB" },
-  { id: "ws-es-3", name: "Locutora Radio", description: "Voz femenina profesional", emoji: "📻", pitch: 1.3, rate: 1.0, lang: "es-ES" },
-  { id: "ws-es-4", name: "Analista Táctico", description: "Pausado y analítico", emoji: "📊", pitch: 0.9, rate: 0.85, lang: "es-ES" },
+const WEB_SPEECH_VOICES: (Voice & { pitch: number; rate: number; lang: string })[] = [
+  { id: "ws-es-1", name: "Narrador de Gol", description: "¡GOOOL! Máxima energía deportiva", emoji: "⚽", pitch: 1.1, rate: 1.1, lang: "es-ES" },
+  { id: "ws-es-2", name: "El Mister", description: "Táctico y autoritario, rueda de prensa", emoji: "👔", pitch: 0.8, rate: 0.88, lang: "es-ES" },
+  { id: "ws-es-3", name: "Radio SER", description: "Elegancia clásica de la radio española", emoji: "📻", pitch: 1.2, rate: 1.0, lang: "es-ES" },
+  { id: "ws-es-4", name: "El Analista", description: "Profundidad táctica, estilo UEFA", emoji: "📊", pitch: 0.9, rate: 0.85, lang: "es-ES" },
+  { id: "ws-en-1", name: "BBC Sport", description: "Sobriedad inglesa, Premier League vibes", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pitch: 1.0, rate: 0.95, lang: "en-GB" },
 ];
 
 export default function VoiceReader({ text, title }: VoiceReaderProps) {
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
-  const [useElevenLabs, setUseElevenLabs] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<string>(WEB_SPEECH_VOICES[0].id);
   const [progress, setProgress] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
   const [elVoices, setElVoices] = useState<Voice[]>([]);
+  const [allVoices, setAllVoices] = useState<Voice[]>(WEB_SPEECH_VOICES);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const progressRef = useRef<number>(0);
 
-  // Load ElevenLabs voices
+  // Load ElevenLabs voices and append to list
   useEffect(() => {
     fetch("/api/tts")
       .then((r) => r.json())
       .then((data: Voice[]) => {
         setElVoices(data);
-        setVoices([...WEB_SPEECH_VOICES, ...data]);
+        setAllVoices([...WEB_SPEECH_VOICES, ...data]);
       })
-      .catch(() => {
-        setVoices(WEB_SPEECH_VOICES);
-      });
+      .catch(() => {/* keep web speech only */});
   }, []);
 
   const stopAll = useCallback(() => {
@@ -61,21 +57,19 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
     setProgress(0);
   }, []);
 
-  const playWebSpeech = useCallback((voiceConfig: typeof WEB_SPEECH_VOICES[0], readText: string) => {
+  const playWebSpeech = useCallback((voiceId: string, readText: string) => {
     if (!window.speechSynthesis) return;
+    const config = WEB_SPEECH_VOICES.find((v) => v.id === voiceId) ?? WEB_SPEECH_VOICES[0];
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(readText);
-    utterance.lang = voiceConfig.lang;
-    utterance.pitch = voiceConfig.pitch;
-    utterance.rate = voiceConfig.rate;
+    utterance.lang = config.lang;
+    utterance.pitch = config.pitch;
+    utterance.rate = config.rate;
 
-    // Try to match browser voice
-    const availableVoices = window.speechSynthesis.getVoices();
-    const matchedVoice = availableVoices.find(
-      (v) => v.lang.startsWith(voiceConfig.lang.split("-")[0])
-    );
-    if (matchedVoice) utterance.voice = matchedVoice;
+    const browserVoices = window.speechSynthesis.getVoices();
+    const matched = browserVoices.find((v) => v.lang.startsWith(config.lang.split("-")[0]));
+    if (matched) utterance.voice = matched;
 
     utterance.onstart = () => setPlaying(true);
     utterance.onend = () => { setPlaying(false); setProgress(100); };
@@ -87,7 +81,6 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       }
     };
 
-    speechRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, []);
 
@@ -101,9 +94,8 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       });
 
       if (!res.ok) {
-        // Fallback to web speech
-        const wsVoice = WEB_SPEECH_VOICES[0];
-        playWebSpeech(wsVoice, readText);
+        // ElevenLabs unavailable — fall back to web speech
+        playWebSpeech(WEB_SPEECH_VOICES[0].id, readText);
         return;
       }
 
@@ -115,12 +107,14 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       audioRef.current = audio;
 
       audio.addEventListener("timeupdate", () => {
-        if (audio.duration) {
-          setProgress((audio.currentTime / audio.duration) * 100);
-        }
+        if (audio.duration) setProgress((audio.currentTime / audio.duration) * 100);
       });
       audio.addEventListener("ended", () => { setPlaying(false); setProgress(100); });
-      audio.addEventListener("error", () => { setPlaying(false); });
+      audio.addEventListener("error", () => {
+        setPlaying(false);
+        // Fallback
+        playWebSpeech(WEB_SPEECH_VOICES[0].id, readText);
+      });
 
       await audio.play();
       setPlaying(true);
@@ -130,21 +124,14 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
   }, [playWebSpeech]);
 
   const handlePlay = useCallback(async () => {
-    const readText = text || "No hay texto disponible para leer.";
-    if (!selectedVoice) {
-      setShowVoicePicker(true);
-      return;
-    }
-
+    const readText = text?.trim() || "No hay texto disponible para leer.";
     stopAll();
 
-    const wsVoice = WEB_SPEECH_VOICES.find((v) => v.id === selectedVoice);
-    const elVoice = elVoices.find((v) => v.id === selectedVoice);
-
-    if (wsVoice) {
-      playWebSpeech(wsVoice, readText);
-    } else if (elVoice) {
-      await playElevenLabs(elVoice.id, readText);
+    const isElVoice = elVoices.some((v) => v.id === selectedVoice);
+    if (isElVoice) {
+      await playElevenLabs(selectedVoice, readText);
+    } else {
+      playWebSpeech(selectedVoice, readText);
     }
   }, [text, selectedVoice, stopAll, playWebSpeech, playElevenLabs, elVoices]);
 
@@ -175,7 +162,7 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
     };
   }, [stopAll, audioUrl]);
 
-  const currentVoice = voices.find((v) => v.id === selectedVoice);
+  const currentVoice = allVoices.find((v) => v.id === selectedVoice) ?? WEB_SPEECH_VOICES[0];
   const isElVoice = elVoices.some((v) => v.id === selectedVoice);
 
   return (
@@ -220,16 +207,23 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
               className="flex items-center justify-between w-full"
             >
               <div className="flex items-center gap-2">
-                <span>{currentVoice?.emoji || "🎙️"}</span>
-                <span className="text-sm text-white">{currentVoice?.name || "Selecciona una voz"}</span>
-                {isElVoice && <span className="text-xs bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded border border-gold-500/30">ElevenLabs</span>}
+                <span>{currentVoice.emoji}</span>
+                <span className="text-sm text-white">{currentVoice.name}</span>
+                {isElVoice && (
+                  <span className="text-xs bg-gold-500/20 text-gold-400 px-1.5 py-0.5 rounded border border-gold-500/30">
+                    ElevenLabs
+                  </span>
+                )}
               </div>
               {showVoicePicker ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
             </button>
 
             {showVoicePicker && (
-              <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
-                {voices.map((voice) => (
+              <div className="mt-2 space-y-1 max-h-52 overflow-y-auto">
+                {allVoices.length > 0 && (
+                  <p className="text-xs text-gray-600 px-1 pb-1">Voces del navegador</p>
+                )}
+                {WEB_SPEECH_VOICES.map((voice) => (
                   <button
                     key={voice.id}
                     onClick={() => { setSelectedVoice(voice.id); setShowVoicePicker(false); stopAll(); }}
@@ -237,22 +231,40 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
                       selectedVoice === voice.id ? "bg-gold-500/20 text-gold-400" : "hover:bg-white/5 text-gray-300"
                     }`}
                   >
-                    <span>{voice.emoji}</span>
+                    <span className="text-base">{voice.emoji}</span>
                     <div>
                       <p className="text-xs font-medium">{voice.name}</p>
                       <p className="text-xs text-gray-500">{voice.description}</p>
                     </div>
-                    {elVoices.some((v) => v.id === voice.id) && (
-                      <span className="ml-auto text-xs text-gold-600">EL</span>
-                    )}
                   </button>
                 ))}
+                {elVoices.length > 0 && (
+                  <>
+                    <p className="text-xs text-gray-600 px-1 pt-2 pb-1">ElevenLabs IA</p>
+                    {elVoices.map((voice) => (
+                      <button
+                        key={voice.id}
+                        onClick={() => { setSelectedVoice(voice.id); setShowVoicePicker(false); stopAll(); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors ${
+                          selectedVoice === voice.id ? "bg-gold-500/20 text-gold-400" : "hover:bg-white/5 text-gray-300"
+                        }`}
+                      >
+                        <span className="text-base">{voice.emoji}</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium">{voice.name}</p>
+                          <p className="text-xs text-gray-500">{voice.description}</p>
+                        </div>
+                        <span className="text-xs text-gold-600 shrink-0">EL</span>
+                      </button>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </div>
 
           {/* Progress bar */}
-          <div className="px-4 py-1">
+          <div className="px-4 pt-3 pb-1">
             <div className="h-1 bg-sport-border rounded-full overflow-hidden">
               <div
                 className="h-full bg-gold-500 transition-all duration-300"
@@ -265,6 +277,7 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
           <div className="flex items-center justify-center gap-4 px-4 py-3">
             <button
               onClick={() => { stopAll(); setProgress(0); }}
+              title="Reiniciar"
               className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
             >
               <SkipBack size={18} />
@@ -273,7 +286,7 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
             <button
               onClick={() => {
                 if (playing) handlePause();
-                else if (progress > 0) handleResume();
+                else if (progress > 0 && !audioRef.current?.ended) handleResume();
                 else handlePlay();
               }}
               disabled={loading}
@@ -290,15 +303,16 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
 
             <button
               onClick={stopAll}
+              title="Parar"
               className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
             >
-              <SkipForward size={18} />
+              <Volume2 size={18} />
             </button>
           </div>
 
           <div className="px-4 pb-3 text-center">
             <p className="text-xs text-gray-600">
-              {playing ? "Reproduciendo..." : "Selecciona una voz y pulsa play"}
+              {loading ? "Generando audio..." : playing ? `Reproduciendo · ${currentVoice.emoji} ${currentVoice.name}` : "Pulsa ▶ para escuchar el artículo"}
             </p>
           </div>
         </div>

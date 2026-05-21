@@ -15,13 +15,13 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js needs unsafe-eval in dev
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://partner.googleadservices.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",
-      "connect-src 'self' https://site.api.espn.com https://www.youtube.com https://api.twitch.tv https://id.twitch.tv wss:",
+      "connect-src 'self' https://site.api.espn.com https://www.youtube.com https://api.twitch.tv https://id.twitch.tv https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net wss:",
       "media-src 'self' https:",
-      "frame-src 'self' https://www.youtube.com https://player.twitch.tv",
+      "frame-src 'self' https://www.youtube.com https://player.twitch.tv https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
       "frame-ancestors 'self'",
     ].join("; "),
   },

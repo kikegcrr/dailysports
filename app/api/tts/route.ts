@@ -3,16 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 // ElevenLabs TTS proxy
 const ELEVENLABS_API = "https://api.elevenlabs.io/v1";
 
-// Curated voice IDs — real ElevenLabs voice IDs for well-known voices
+// Sports commentator/influencer voice personas
 export const VOICE_CHARACTERS = [
-  { id: "21m00Tcm4TlvDq8ikWAM", name: "Narrador Épico", description: "Voz grave y épica estilo narrador de documentales", emoji: "🎙️" },
-  { id: "AZnzlk1XvdvUeBnXmlld", name: "Comentarista Latino", description: "Energía latina, perfecto para narrar goles", emoji: "⚽" },
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Locutora Profesional", description: "Voz femenina profesional de radio deportiva", emoji: "📻" },
-  { id: "ErXwobaYiN019PkySvjV", name: "Reportero Urgente", description: "Tono urgente de última hora deportiva", emoji: "🚨" },
-  { id: "VR6AewLTigWG4xSOukaG", name: "Analista Táctico", description: "Voz pausada y analítica, estilo conferencia", emoji: "📊" },
-  { id: "pNInz6obpgDQGcFmaJgB", name: "Narrador Clásico", description: "Estilo clásico de narración deportiva española", emoji: "🏆" },
-  { id: "yoZ06aMxZJJ28mfd3POQ", name: "Presentador Premium", description: "Voz premium, televisión de alto nivel", emoji: "📺" },
-  { id: "Zlb1dXrM653N07WRdFW3", name: "Voz Brit Deportes", description: "Estilo inglés, Premier League vibes", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { id: "AZnzlk1XvdvUeBnXmlld", name: "Narrador de Gol", description: "¡GOOOL! Máxima energía, estilo Carlos Martínez", emoji: "⚽" },
+  { id: "21m00Tcm4TlvDq8ikWAM", name: "El Chiringuito", description: "Prime time explosivo, debate deportivo de élite", emoji: "🔥" },
+  { id: "VR6AewLTigWG4xSOukaG", name: "El Mister", description: "Táctico y autoritario, rueda de prensa Champions", emoji: "👔" },
+  { id: "EXAVITQu4vr4xnSDxMaL", name: "Radio SER", description: "La voz elegante de la radio deportiva clásica", emoji: "📻" },
+  { id: "ErXwobaYiN019PkySvjV", name: "Breaking Sports", description: "Último momento, noticias al instante", emoji: "🚨" },
+  { id: "pNInz6obpgDQGcFmaJgB", name: "Clásico MARCA", description: "100 años de historia deportiva española", emoji: "🏆" },
+  { id: "yoZ06aMxZJJ28mfd3POQ", name: "Sky Sports", description: "El glamour de la Premier League", emoji: "📺" },
+  { id: "Zlb1dXrM653N07WRdFW3", name: "BBC Sport", description: "Sobriedad y elegancia inglesa de alto nivel", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
 ];
 
 export async function POST(request: NextRequest) {
