@@ -100,6 +100,16 @@ export default function MatchCard({ match, sport = "football", featured }: Match
           </div>
         </div>
 
+        {/* Broadcast channels for scheduled matches */}
+        {match.status === "scheduled" && match.broadcasts && match.broadcasts.length > 0 && (
+          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-600">📺</span>
+            {match.broadcasts.map((b) => (
+              <span key={b} className="text-xs px-1.5 py-0.5 rounded bg-sport-border/60 text-gray-400">{b}</span>
+            ))}
+          </div>
+        )}
+
         {/* Events summary (football/basketball) or set scores (tennis) */}
         {sport === "tennis" && match.minute && (
           <div className="mt-2 text-xs text-gray-400 font-mono tracking-wider">

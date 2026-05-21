@@ -43,6 +43,12 @@ export interface MatchTeam {
   score: string;
 }
 
+export interface PlayerLeader {
+  stat: string;
+  value: string;
+  name: string;
+}
+
 export interface LiveMatch {
   id: string;
   league: string;
@@ -62,6 +68,19 @@ export interface LiveMatch {
     yellowCards?: [number, number];
     redCards?: [number, number];
   };
+  basketStats?: {
+    rebounds?: [number, number];
+    assists?: [number, number];
+    fgPct?: [number, number];
+    threePct?: [number, number];
+    ftPct?: [number, number];
+    steals?: [number, number];
+    blocks?: [number, number];
+    turnovers?: [number, number];
+    quarterScores?: [number[], number[]];
+  };
+  leaders?: PlayerLeader[];
+  broadcasts?: string[];
   startTime?: string;
   venue?: string;
 }
@@ -85,6 +104,12 @@ function parseEventType(typeText: string): MatchEvent["type"] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function statVal(arr: any[], name: string): number | undefined {
+  const s = arr.find((x: any) => x.name === name);
+  return s ? parseFloat(s.displayValue ?? s.value ?? "0") : undefined;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseMatch(event: any, leagueName: string): LiveMatch {
   const comp = event.competitions?.[0] || {};
   const statusName = comp.status?.type?.name || "";
@@ -100,14 +125,42 @@ function parseMatch(event: any, leagueName: string): LiveMatch {
     description: d.type?.text,
   }));
 
-  // Parse stats
+  // Football/soccer competition-level stats
+  const compStats = comp.statistics || [];
   const statsMap: Record<string, number[]> = {};
-  for (const stat of comp.statistics || []) {
-    statsMap[stat.name] = [
-      parseFloat(stat.homeValue || "0"),
-      parseFloat(stat.awayValue || "0"),
-    ];
+  for (const stat of compStats) {
+    statsMap[stat.name] = [parseFloat(stat.homeValue || "0"), parseFloat(stat.awayValue || "0")];
   }
+
+  // Basketball competitor-level stats (NBA: stats live on each competitor)
+  const homeStats: any[] = homeTeam?.statistics || [];
+  const awayStats: any[] = awayTeam?.statistics || [];
+  const homeQtr: number[] = (homeTeam?.linescores || []).map((l: any) => l.value ?? 0);
+  const awayQtr: number[] = (awayTeam?.linescores || []).map((l: any) => l.value ?? 0);
+
+  const basketStats = homeStats.length > 0 ? {
+    rebounds:    [statVal(homeStats, "rebounds"), statVal(awayStats, "rebounds")] as [number, number],
+    assists:     [statVal(homeStats, "assists"),  statVal(awayStats, "assists")]  as [number, number],
+    fgPct:       [statVal(homeStats, "fieldGoalPct"),       statVal(awayStats, "fieldGoalPct")]       as [number, number],
+    threePct:    [statVal(homeStats, "threePointPct"),      statVal(awayStats, "threePointPct")]      as [number, number],
+    ftPct:       [statVal(homeStats, "freeThrowPct"),       statVal(awayStats, "freeThrowPct")]       as [number, number],
+    turnovers:   [statVal(homeStats, "turnovers") ?? 0,    statVal(awayStats, "turnovers") ?? 0]    as [number, number],
+    quarterScores: homeQtr.length > 0 ? [homeQtr, awayQtr] as [number[], number[]] : undefined,
+  } : undefined;
+
+  // Player leaders
+  const leaders: PlayerLeader[] = [];
+  for (const competitor of [homeTeam, awayTeam]) {
+    for (const leader of competitor?.leaders || []) {
+      const top = leader.leaders?.[0];
+      if (top?.athlete?.displayName) {
+        leaders.push({ stat: leader.displayName ?? leader.name, value: top.displayValue, name: top.athlete.displayName });
+      }
+    }
+  }
+
+  // Broadcast info
+  const broadcasts = (comp.broadcasts || []).flatMap((b: any) => b.names || []) as string[];
 
   return {
     id: event.id,
@@ -131,14 +184,17 @@ function parseMatch(event: any, leagueName: string): LiveMatch {
       score: awayTeam?.score || "0",
     },
     events,
-    stats: {
+    stats: compStats.length > 0 ? {
       possession: statsMap.possessionPct as [number, number] | undefined,
       shots: statsMap.totalShots as [number, number] | undefined,
       shotsOnTarget: statsMap.shotsOnTarget as [number, number] | undefined,
       corners: statsMap.cornerKicks as [number, number] | undefined,
       fouls: statsMap.fouls as [number, number] | undefined,
       yellowCards: statsMap.yellowCards as [number, number] | undefined,
-    },
+    } : undefined,
+    basketStats,
+    leaders: leaders.length > 0 ? leaders : undefined,
+    broadcasts: broadcasts.length > 0 ? broadcasts : undefined,
     startTime: event.date,
     venue: comp.venue?.fullName,
   };

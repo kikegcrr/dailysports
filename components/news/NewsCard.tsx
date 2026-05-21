@@ -67,6 +67,8 @@ export default function NewsCard({ item, lang = "es", featured, compact }: NewsC
               src={item.imageUrl}
               alt={item.title}
               fill
+              priority={!!featured}
+              loading={featured ? "eager" : "lazy"}
               className="object-cover group-hover:scale-105 transition-transform duration-500"
               sizes={featured ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 100vw, 33vw"}
             />

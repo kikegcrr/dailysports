@@ -8,6 +8,8 @@ export type NewsItem = {
   source: string;
   sourceUrl: string;
   category: "football" | "basketball" | "other";
+  region: "es" | "global";
+  priority: number;
   imageUrl?: string;
   summary?: string;
 };
@@ -29,45 +31,31 @@ const parser = new Parser<Record<string, unknown>, CustomItem>({
   },
 });
 
+// priority 1=highest influence, 5=lowest. Sources interleaved in feed by recency then priority.
 export const RSS_SOURCES = [
-  // --- Football (heavy) ---
-  {
-    url: "https://www.marca.com/rss/portada.xml",
-    name: "Marca",
-    category: "football" as const,
-  },
-  {
-    url: "https://as.com/rss/tags/ultimas_noticias.xml",
-    name: "AS",
-    category: "football" as const,
-  },
-  {
-    url: "https://www.sport.es/rss/portada.xml",
-    name: "Sport",
-    category: "football" as const,
-  },
-  {
-    url: "https://www.mundodeportivo.com/mvc/feed/rss/section/futbol",
-    name: "Mundo Deportivo",
-    category: "football" as const,
-  },
-  // --- Basketball ---
-  {
-    url: "https://basketplus.es/feed/",
-    name: "Basket Plus",
-    category: "basketball" as const,
-  },
-  {
-    url: "https://www.mundodeportivo.com/mvc/feed/rss/section/baloncesto",
-    name: "MD Baloncesto",
-    category: "basketball" as const,
-  },
-  // --- Other sports ---
-  {
-    url: "https://as.com/rss/tags/otros_deportes.xml",
-    name: "AS Otros",
-    category: "other" as const,
-  },
+  // === SPANISH SPORTS MEDIA (priority 1-2) ===
+  { url: "https://www.marca.com/rss/portada.xml",           name: "Marca",          category: "football"   as const, region: "es"     as const, priority: 1 },
+  { url: "https://as.com/rss/tags/ultimas_noticias.xml",    name: "AS",             category: "football"   as const, region: "es"     as const, priority: 1 },
+  { url: "https://www.mundodeportivo.com/rss/portada.xml",  name: "Mundo Deportivo",category: "football"   as const, region: "es"     as const, priority: 2 },
+  { url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/deportes/portada",
+                                                             name: "El País Deportes",category:"other"      as const, region: "es"     as const, priority: 2 },
+  { url: "https://www.abc.es/rss/feeds/abc_Deportes.xml",   name: "ABC Deportes",   category: "other"      as const, region: "es"     as const, priority: 2 },
+  { url: "https://www.cope.es/rss/deportes.xml",            name: "COPE Deportes",  category: "football"   as const, region: "es"     as const, priority: 2 },
+  { url: "https://www.marca.com/rss/baloncesto.xml",        name: "Marca Basket",   category: "basketball" as const, region: "es"     as const, priority: 2 },
+
+  // === GLOBAL TOP SPORTS MEDIA (priority 1-2) ===
+  { url: "https://feeds.bbci.co.uk/sport/rss.xml",          name: "BBC Sport",      category: "other"      as const, region: "global" as const, priority: 1 },
+  { url: "https://www.espn.com/espn/rss/news",              name: "ESPN",           category: "other"      as const, region: "global" as const, priority: 1 },
+  { url: "https://www.skysports.com/rss/12040",             name: "Sky Sports",     category: "football"   as const, region: "global" as const, priority: 1 },
+  { url: "https://www.uefa.com/rssfeed/newslist/index.xml", name: "UEFA",           category: "football"   as const, region: "global" as const, priority: 2 },
+  { url: "https://www.fourfourtwo.com/rss",                 name: "FourFourTwo",    category: "football"   as const, region: "global" as const, priority: 2 },
+
+  // === LATIN AMERICA ===
+  { url: "https://www.clarin.com/rss/deportes/",            name: "Clarín Deportes",category: "football"   as const, region: "global" as const, priority: 3 },
+
+  // === BASKETBALL ===
+  { url: "https://basketplus.es/feed/",                     name: "Basket Plus",    category: "basketball" as const, region: "es"     as const, priority: 3 },
+  { url: "https://as.com/rss/tags/otros_deportes.xml",      name: "AS Motor/Otros", category: "other"      as const, region: "es"     as const, priority: 3 },
 ];
 
 function extractImage(item: CustomItem): string | undefined {
@@ -81,7 +69,7 @@ function extractImage(item: CustomItem): string | undefined {
 export async function fetchNewsFromSource(source: (typeof RSS_SOURCES)[0]): Promise<NewsItem[]> {
   try {
     const feed = await parser.parseURL(source.url);
-    return (feed.items || []).slice(0, 15).map((item) => ({
+    return (feed.items || []).slice(0, 12).map((item) => ({
       id: `${source.name}-${item.link || item.title}`,
       title: item.title || "",
       link: item.link || "#",
@@ -89,6 +77,8 @@ export async function fetchNewsFromSource(source: (typeof RSS_SOURCES)[0]): Prom
       source: source.name,
       sourceUrl: source.url,
       category: source.category,
+      region: source.region,
+      priority: source.priority,
       imageUrl: extractImage(item as CustomItem),
       summary: item.contentSnippet?.slice(0, 200),
     }));
@@ -105,8 +95,14 @@ export async function fetchAllNews(): Promise<NewsItem[]> {
     .filter((r): r is PromiseFulfilledResult<NewsItem[]> => r.status === "fulfilled")
     .flatMap((r) => r.value);
 
-  // Sort by date, newest first
-  return items.sort(
-    (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-  );
+  const now = Date.now();
+  // Score = recency (0-100) + influence (priority weight)
+  // Items published in last 2h score highest; older items decay
+  return items.sort((a, b) => {
+    const ageA = (now - new Date(a.pubDate).getTime()) / 1000 / 60; // minutes
+    const ageB = (now - new Date(b.pubDate).getTime()) / 1000 / 60;
+    const scoreA = Math.max(0, 120 - ageA) + (5 - a.priority) * 8;
+    const scoreB = Math.max(0, 120 - ageB) + (5 - b.priority) * 8;
+    return scoreB - scoreA;
+  });
 }

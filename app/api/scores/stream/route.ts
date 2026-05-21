@@ -42,17 +42,46 @@ function parseMatch(event: any, league: string) {
     return { type, minute: d.clock?.displayValue ?? "", teamSide: d.team?.id === home?.team?.id ? "home" : "away", player: d.athletesInvolved?.[0]?.displayName };
   });
 
+  const compStats = comp.statistics ?? [];
   const statsMap: Record<string, number[]> = {};
-  for (const s of comp.statistics ?? []) {
-    statsMap[s.name] = [parseFloat(s.homeValue ?? "0"), parseFloat(s.awayValue ?? "0")];
+  for (const s of compStats) statsMap[s.name] = [parseFloat(s.homeValue ?? "0"), parseFloat(s.awayValue ?? "0")];
+
+  // Basketball competitor-level stats
+  const sv = (arr: any[], name: string) => { const s = arr.find((x: any) => x.name === name); return s ? parseFloat(s.displayValue ?? s.value ?? "0") : undefined; };
+  const hs: any[] = home?.statistics ?? [];
+  const as_: any[] = away?.statistics ?? [];
+  const hQtr = (home?.linescores ?? []).map((l: any) => l.value ?? 0);
+  const aQtr = (away?.linescores ?? []).map((l: any) => l.value ?? 0);
+  const basketStats = hs.length > 0 ? {
+    rebounds: [sv(hs, "rebounds"), sv(as_, "rebounds")],
+    assists:  [sv(hs, "assists"),  sv(as_, "assists")],
+    fgPct:    [sv(hs, "fieldGoalPct"),  sv(as_, "fieldGoalPct")],
+    threePct: [sv(hs, "threePointPct"), sv(as_, "threePointPct")],
+    ftPct:    [sv(hs, "freeThrowPct"),  sv(as_, "freeThrowPct")],
+    turnovers:[sv(hs, "turnovers") ?? 0, sv(as_, "turnovers") ?? 0],
+    quarterScores: hQtr.length > 0 ? [hQtr, aQtr] : undefined,
+  } : undefined;
+
+  // Player leaders
+  const leaders: unknown[] = [];
+  for (const c of [home, away]) {
+    for (const l of c?.leaders ?? []) {
+      const top = l.leaders?.[0];
+      if (top?.athlete?.displayName) leaders.push({ stat: l.displayName ?? l.name, value: top.displayValue, name: top.athlete.displayName });
+    }
   }
+
+  const broadcasts = (comp.broadcasts ?? []).flatMap((b: any) => b.names ?? []) as string[];
 
   return {
     id: event.id, league, leagueName: event.season?.slug ?? league, status,
     minute: comp.status?.displayClock ?? comp.status?.type?.shortDetail, period: comp.status?.period,
     home: { name: home?.team?.displayName ?? "Home", shortName: home?.team?.abbreviation ?? "HOM", logo: home?.team?.logo ?? "", color: home?.team?.color, score: home?.score ?? "0" },
     away: { name: away?.team?.displayName ?? "Away", shortName: away?.team?.abbreviation ?? "AWY", logo: away?.team?.logo ?? "", color: away?.team?.color, score: away?.score ?? "0" },
-    events, stats: { possession: statsMap.possessionPct, shots: statsMap.totalShots, shotsOnTarget: statsMap.shotsOnTarget, corners: statsMap.cornerKicks, fouls: statsMap.fouls, yellowCards: statsMap.yellowCards },
+    events,
+    stats: compStats.length > 0 ? { possession: statsMap.possessionPct, shots: statsMap.totalShots, shotsOnTarget: statsMap.shotsOnTarget, corners: statsMap.cornerKicks, fouls: statsMap.fouls, yellowCards: statsMap.yellowCards } : undefined,
+    basketStats, leaders: leaders.length > 0 ? leaders : undefined,
+    broadcasts: broadcasts.length > 0 ? broadcasts : undefined,
     startTime: event.date, venue: comp.venue?.fullName,
   };
 }
