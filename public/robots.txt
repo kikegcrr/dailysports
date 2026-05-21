@@ -1,7 +1,4 @@
 User-agent: *
 Allow: /
 
-User-agent: Googlebot
-Allow: /
-
-Sitemap: https://dailysports-alpha.vercel.app/sitemap.xml
+Sitemap: https://dailysports.es/sitemap.xml
