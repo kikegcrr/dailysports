@@ -1,17 +1,13 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Pause, X, Volume2, SkipBack, Mic, ChevronUp, ChevronDown } from "lucide-react";
+import { useVoiceReader } from "@/lib/voice-reader-context";
 
 interface Voice {
   id: string;
   name: string;
   description: string;
   emoji: string;
-}
-
-interface VoiceReaderProps {
-  text?: string;
-  title?: string;
 }
 
 const WEB_SPEECH_VOICES: (Voice & { pitch: number; rate: number; lang: string })[] = [
@@ -22,8 +18,9 @@ const WEB_SPEECH_VOICES: (Voice & { pitch: number; rate: number; lang: string })
   { id: "ws-en-1", name: "BBC Sport", description: "Sobriedad inglesa, Premier League vibes", emoji: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", pitch: 1.0, rate: 0.95, lang: "en-GB" },
 ];
 
-export default function VoiceReader({ text, title }: VoiceReaderProps) {
-  const [open, setOpen] = useState(false);
+export default function VoiceReader() {
+  const { article, playerOpen, setPlayerOpen } = useVoiceReader();
+
   const [playing, setPlaying] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>(WEB_SPEECH_VOICES[0].id);
   const [progress, setProgress] = useState(0);
@@ -35,8 +32,9 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressRef = useRef<number>(0);
+  // Track which article text is currently loaded in the player
+  const loadedArticleRef = useRef<string>("");
 
-  // Load ElevenLabs voices and append to list
   useEffect(() => {
     fetch("/api/tts")
       .then((r) => r.json())
@@ -44,7 +42,7 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
         setElVoices(data);
         setAllVoices([...WEB_SPEECH_VOICES, ...data]);
       })
-      .catch(() => {/* keep web speech only */});
+      .catch(() => {});
   }, []);
 
   const stopAll = useCallback(() => {
@@ -56,6 +54,14 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
     setPlaying(false);
     setProgress(0);
   }, []);
+
+  // Stop and reset when a new article is loaded
+  useEffect(() => {
+    if (article && article.text !== loadedArticleRef.current) {
+      stopAll();
+      loadedArticleRef.current = article.text;
+    }
+  }, [article, stopAll]);
 
   const playWebSpeech = useCallback((voiceId: string, readText: string) => {
     if (!window.speechSynthesis) return;
@@ -94,7 +100,6 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       });
 
       if (!res.ok) {
-        // ElevenLabs unavailable — fall back to web speech
         playWebSpeech(WEB_SPEECH_VOICES[0].id, readText);
         return;
       }
@@ -112,7 +117,6 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       audio.addEventListener("ended", () => { setPlaying(false); setProgress(100); });
       audio.addEventListener("error", () => {
         setPlaying(false);
-        // Fallback
         playWebSpeech(WEB_SPEECH_VOICES[0].id, readText);
       });
 
@@ -124,35 +128,26 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
   }, [playWebSpeech]);
 
   const handlePlay = useCallback(async () => {
-    const readText = text?.trim() || "No hay texto disponible para leer.";
+    const readText = article?.text?.trim() || "";
+    if (!readText) return;
     stopAll();
 
-    const isElVoice = elVoices.some((v) => v.id === selectedVoice);
-    if (isElVoice) {
+    const isEl = elVoices.some((v) => v.id === selectedVoice);
+    if (isEl) {
       await playElevenLabs(selectedVoice, readText);
     } else {
       playWebSpeech(selectedVoice, readText);
     }
-  }, [text, selectedVoice, stopAll, playWebSpeech, playElevenLabs, elVoices]);
+  }, [article, selectedVoice, stopAll, playWebSpeech, playElevenLabs, elVoices]);
 
   const handlePause = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-    } else if (window.speechSynthesis?.speaking) {
-      window.speechSynthesis.pause();
-      setPlaying(false);
-    }
+    if (audioRef.current) { audioRef.current.pause(); setPlaying(false); }
+    else if (window.speechSynthesis?.speaking) { window.speechSynthesis.pause(); setPlaying(false); }
   }, []);
 
   const handleResume = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.play();
-      setPlaying(true);
-    } else if (window.speechSynthesis?.paused) {
-      window.speechSynthesis.resume();
-      setPlaying(true);
-    }
+    if (audioRef.current) { audioRef.current.play(); setPlaying(true); }
+    else if (window.speechSynthesis?.paused) { window.speechSynthesis.resume(); setPlaying(true); }
   }, []);
 
   useEffect(() => {
@@ -164,13 +159,17 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
 
   const currentVoice = allVoices.find((v) => v.id === selectedVoice) ?? WEB_SPEECH_VOICES[0];
   const isElVoice = elVoices.some((v) => v.id === selectedVoice);
+  const hasText = !!article?.text?.trim();
+
+  // Don't render if no article has been selected yet
+  if (!article && !playerOpen) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      {/* Collapsed button */}
-      {!open && (
+      {/* Collapsed button — only show if player is closed but article is loaded */}
+      {!playerOpen && article && (
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => setPlayerOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-sport-card border border-gold-500/40 hover:border-gold-500/70 text-gold-400 shadow-xl shadow-black/50 transition-all hover:scale-105"
         >
           <Mic size={18} className={playing ? "animate-pulse" : ""} />
@@ -180,7 +179,7 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
       )}
 
       {/* Expanded player */}
-      {open && (
+      {playerOpen && (
         <div className="w-80 bg-sport-card border border-sport-border rounded-2xl shadow-2xl shadow-black/60 overflow-hidden animate-slide-up">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-sport-border bg-gradient-to-r from-gold-500/10 to-transparent">
@@ -188,15 +187,18 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
               <Mic size={16} className={`text-gold-400 ${playing ? "animate-pulse" : ""}`} />
               <span className="text-sm font-semibold text-white">Lector IA</span>
             </div>
-            <button onClick={() => { setOpen(false); stopAll(); }} className="text-gray-500 hover:text-white p-1">
+            <button
+              onClick={() => { setPlayerOpen(false); stopAll(); }}
+              className="text-gray-500 hover:text-white p-1"
+            >
               <X size={16} />
             </button>
           </div>
 
           {/* Article title */}
-          {title && (
+          {article?.title && (
             <div className="px-4 py-2 border-b border-sport-border">
-              <p className="text-xs text-gray-400 line-clamp-2">{title}</p>
+              <p className="text-xs text-gray-300 font-medium line-clamp-2">{article.title}</p>
             </div>
           )}
 
@@ -215,20 +217,22 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
                   </span>
                 )}
               </div>
-              {showVoicePicker ? <ChevronUp size={14} className="text-gray-500" /> : <ChevronDown size={14} className="text-gray-500" />}
+              {showVoicePicker
+                ? <ChevronUp size={14} className="text-gray-500" />
+                : <ChevronDown size={14} className="text-gray-500" />}
             </button>
 
             {showVoicePicker && (
               <div className="mt-2 space-y-1 max-h-52 overflow-y-auto">
-                {allVoices.length > 0 && (
-                  <p className="text-xs text-gray-600 px-1 pb-1">Voces del navegador</p>
-                )}
+                <p className="text-xs text-gray-600 px-1 pb-1">Voces del navegador</p>
                 {WEB_SPEECH_VOICES.map((voice) => (
                   <button
                     key={voice.id}
                     onClick={() => { setSelectedVoice(voice.id); setShowVoicePicker(false); stopAll(); }}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors ${
-                      selectedVoice === voice.id ? "bg-gold-500/20 text-gold-400" : "hover:bg-white/5 text-gray-300"
+                      selectedVoice === voice.id
+                        ? "bg-gold-500/20 text-gold-400"
+                        : "hover:bg-white/5 text-gray-300"
                     }`}
                   >
                     <span className="text-base">{voice.emoji}</span>
@@ -246,7 +250,9 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
                         key={voice.id}
                         onClick={() => { setSelectedVoice(voice.id); setShowVoicePicker(false); stopAll(); }}
                         className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors ${
-                          selectedVoice === voice.id ? "bg-gold-500/20 text-gold-400" : "hover:bg-white/5 text-gray-300"
+                          selectedVoice === voice.id
+                            ? "bg-gold-500/20 text-gold-400"
+                            : "hover:bg-white/5 text-gray-300"
                         }`}
                       >
                         <span className="text-base">{voice.emoji}</span>
@@ -286,10 +292,10 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
             <button
               onClick={() => {
                 if (playing) handlePause();
-                else if (progress > 0 && !audioRef.current?.ended) handleResume();
+                else if (progress > 0) handleResume();
                 else handlePlay();
               }}
-              disabled={loading}
+              disabled={loading || !hasText}
               className="w-12 h-12 rounded-full bg-gold-500 hover:bg-gold-400 text-black flex items-center justify-center shadow-lg shadow-gold-500/30 transition-all hover:scale-105 disabled:opacity-50"
             >
               {loading ? (
@@ -312,7 +318,13 @@ export default function VoiceReader({ text, title }: VoiceReaderProps) {
 
           <div className="px-4 pb-3 text-center">
             <p className="text-xs text-gray-600">
-              {loading ? "Generando audio..." : playing ? `Reproduciendo · ${currentVoice.emoji} ${currentVoice.name}` : "Pulsa ▶ para escuchar el artículo"}
+              {loading
+                ? "Generando audio..."
+                : playing
+                ? `${currentVoice.emoji} ${currentVoice.name}`
+                : hasText
+                ? "Pulsa ▶ para escuchar el artículo"
+                : "Selecciona un artículo para leer"}
             </p>
           </div>
         </div>

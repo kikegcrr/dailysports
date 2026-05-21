@@ -1,10 +1,11 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, ExternalLink, Clock } from "lucide-react";
+import { Bookmark, ExternalLink, Clock, Mic } from "lucide-react";
 import { NewsItem } from "@/lib/rss";
 import { timeAgo, cn } from "@/lib/utils";
 import CategoryBadge from "@/components/ui/Badge";
+import { useVoiceReader } from "@/lib/voice-reader-context";
 
 interface NewsCardProps {
   item: NewsItem;
@@ -14,6 +15,8 @@ interface NewsCardProps {
 }
 
 export default function NewsCard({ item, lang = "es", featured, compact }: NewsCardProps) {
+  const { openWithArticle } = useVoiceReader();
+
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
     const saved = JSON.parse(localStorage.getItem("savedArticles") || "[]");
@@ -21,6 +24,12 @@ export default function NewsCard({ item, lang = "es", featured, compact }: NewsC
     if (!exists) {
       localStorage.setItem("savedArticles", JSON.stringify([...saved, item]));
     }
+  };
+
+  const handleListen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const text = [item.title, item.summary].filter(Boolean).join(". ");
+    openWithArticle({ title: item.title, text });
   };
 
   if (compact) {
@@ -84,13 +93,22 @@ export default function NewsCard({ item, lang = "es", featured, compact }: NewsC
       <div className="p-4">
         <div className="flex items-center justify-between mb-2">
           <CategoryBadge category={item.category} />
-          <button
-            onClick={handleSave}
-            className="p-1.5 rounded-lg text-gray-600 hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
-            title="Guardar"
-          >
-            <Bookmark size={14} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleListen}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+              title="Escuchar artículo"
+            >
+              <Mic size={14} />
+            </button>
+            <button
+              onClick={handleSave}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-gold-400 hover:bg-gold-500/10 transition-colors"
+              title="Guardar"
+            >
+              <Bookmark size={14} />
+            </button>
+          </div>
         </div>
 
         <a href={item.link} target="_blank" rel="noopener noreferrer">
