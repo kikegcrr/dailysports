@@ -86,11 +86,31 @@ export interface LiveMatch {
 }
 
 function parseStatus(statusName: string): MatchStatus {
-  if (statusName.includes("IN_PROGRESS") || statusName.includes("HALFTIME")) {
-    if (statusName.includes("HALFTIME")) return "halftime";
-    return "live";
-  }
-  if (statusName.includes("FINAL") || statusName.includes("FULL_TIME") || statusName.includes("COMPLETED")) return "finished";
+  const s = statusName.toUpperCase();
+  // Halftime / end of half — check before IN_PROGRESS so halftime wins
+  if (s.includes("HALFTIME") || s.includes("HALF_TIME")) return "halftime";
+  // Any live / in-progress state
+  if (
+    s.includes("IN_PROGRESS") ||
+    s.includes("FIRST_HALF") ||
+    s.includes("SECOND_HALF") ||
+    s.includes("EXTRA_TIME") ||
+    s.includes("OVERTIME") ||
+    s.includes("PENALTY") ||
+    s.includes("END_PERIOD") ||      // basketball Q1/Q3 break
+    s.includes("KICKOFF")
+  ) return "live";
+  // Finished / concluded
+  if (
+    s.includes("FINAL") ||
+    s.includes("FULL_TIME") ||
+    s.includes("COMPLETED") ||
+    s.includes("ABANDONED") ||
+    s.includes("POSTPONED") ||
+    s.includes("CANCELED") ||
+    s.includes("SUSPENDED") ||
+    s.includes("WALKOVER")
+  ) return "finished";
   return "scheduled";
 }
 

@@ -2,6 +2,7 @@ import { hasLocale, getDictionary, Locale } from "@/lib/dictionaries";
 import { notFound } from "next/navigation";
 import NewsFeed from "@/components/news/NewsFeed";
 import { ForumTopicGrid } from "@/components/forums/ForumTopics";
+import TwitterWall from "@/components/social/TwitterWall";
 import Link from "next/link";
 import { Zap, TrendingUp, Users, MessageSquare } from "lucide-react";
 
@@ -71,6 +72,22 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
           </h2>
         </div>
         <NewsFeed lang={lang} />
+      </section>
+
+      {/* Twitter / X live accounts */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <span className="w-1 h-5 bg-sky-500 rounded-full inline-block" />
+            <span className="text-sky-400 font-bold">𝕏</span>
+            Cuentas para seguir en vivo
+          </h2>
+          <Link href={`/${lang}/social`} className="text-sm text-sky-400 hover:text-sky-300 transition-colors">
+            Ver redes →
+          </Link>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">Estas cuentas publican noticias deportivas en tiempo real — síguelas para no perderte nada.</p>
+        <TwitterWall />
       </section>
 
       {/* Forum topics preview */}

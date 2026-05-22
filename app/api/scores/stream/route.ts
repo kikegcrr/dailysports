@@ -19,9 +19,18 @@ const LEAGUES: Record<string, { path: string; tennis?: boolean }> = {
 };
 
 function parseStatus(name: string): string {
-  if (name.includes("HALFTIME")) return "halftime";
-  if (name.includes("IN_PROGRESS")) return "live";
-  if (name.includes("FINAL") || name.includes("COMPLETED") || name.includes("FULL_TIME")) return "finished";
+  const s = name.toUpperCase();
+  if (s.includes("HALFTIME") || s.includes("HALF_TIME")) return "halftime";
+  if (
+    s.includes("IN_PROGRESS") || s.includes("FIRST_HALF") || s.includes("SECOND_HALF") ||
+    s.includes("EXTRA_TIME")  || s.includes("OVERTIME")   || s.includes("PENALTY") ||
+    s.includes("END_PERIOD")  || s.includes("KICKOFF")
+  ) return "live";
+  if (
+    s.includes("FINAL") || s.includes("FULL_TIME") || s.includes("COMPLETED") ||
+    s.includes("ABANDONED") || s.includes("POSTPONED") || s.includes("CANCELED") ||
+    s.includes("SUSPENDED")  || s.includes("WALKOVER")
+  ) return "finished";
   return "scheduled";
 }
 
@@ -115,7 +124,23 @@ function parseTennisEvent(event: any, league: string) {
   return matches;
 }
 
-async function fetchAllMatches(sport: string, league: string | null) {
+// Compute the ESPN date string (YYYYMMDD) for a Date object using UTC
+function toESPNDate(d: Date): string {
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+// Return the previous calendar day in ESPN format
+function prevDay(espnDate: string): string {
+  const y = parseInt(espnDate.slice(0, 4));
+  const m = parseInt(espnDate.slice(4, 6)) - 1;
+  const d = parseInt(espnDate.slice(6, 8));
+  const prev = new Date(Date.UTC(y, m, d - 1));
+  return toESPNDate(prev);
+}
+
+// Fetch all matching leagues for a single ESPN date
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchDate(sport: string, league: string | null, date: string): Promise<any[]> {
   const entries = Object.entries(LEAGUES).filter(([key, meta]) => {
     if (league) return key === league;
     if (sport === "football") return !meta.tennis && key !== "nba";
@@ -126,10 +151,8 @@ async function fetchAllMatches(sport: string, league: string | null) {
 
   const results = await Promise.allSettled(
     entries.map(async ([key, meta]) => {
-      const res = await fetch(`${ESPN_BASE}/${meta.path}/scoreboard`, {
-        cache: "no-store",
-        signal: AbortSignal.timeout(5000),
-      });
+      const url = `${ESPN_BASE}/${meta.path}/scoreboard?dates=${date}`;
+      const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(5000) });
       if (!res.ok) return [];
       const json = await res.json();
       if (meta.tennis) return (json.events ?? []).flatMap((e: unknown) => parseTennisEvent(e, key));
@@ -137,9 +160,31 @@ async function fetchAllMatches(sport: string, league: string | null) {
     })
   );
 
-  const all = results
+  return results
     .filter((r): r is PromiseFulfilledResult<unknown[]> => r.status === "fulfilled")
     .flatMap((r) => r.value);
+}
+
+async function fetchAllMatches(sport: string, league: string | null, date: string, isToday: boolean) {
+  // Fetch the requested date
+  const main = await fetchDate(sport, league, date);
+
+  let all = main;
+
+  if (isToday) {
+    // Also check the previous calendar day — catches US-timezone sports (NBA playoffs etc.)
+    // stored under the prior Eastern-time date but live/finishing for European viewers.
+    const yesterday = prevDay(date);
+    const prev = await fetchDate(sport, league, yesterday);
+    const seenIds = new Set(main.map((m: any) => m.id));
+    // Carry over any match from yesterday that is currently live or at halftime
+    for (const m of prev) {
+      if ((m.status === "live" || m.status === "halftime") && !seenIds.has(m.id)) {
+        all = [m, ...all];
+        seenIds.add(m.id);
+      }
+    }
+  }
 
   const order: Record<string, number> = { live: 0, halftime: 1, scheduled: 2, finished: 3 };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,8 +194,11 @@ async function fetchAllMatches(sport: string, league: string | null) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const sport = searchParams.get("sport") ?? "all";
-  const league = searchParams.get("league");
+  const sport  = searchParams.get("sport")  ?? "all";
+  const league = searchParams.get("league") ?? null;
+  const date   = searchParams.get("date")   ?? toESPNDate(new Date());
+  // Client explicitly tells us if this is "today" so we don't depend on server clock timezone
+  const isToday = searchParams.get("today") === "1";
 
   const encoder = new TextEncoder();
 
@@ -158,7 +206,7 @@ export async function GET(req: Request) {
     async start(controller) {
       const send = async () => {
         try {
-          const data = await fetchAllMatches(sport, league);
+          const data = await fetchAllMatches(sport, league, date, isToday);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch {
           // skip failed fetch — client keeps the last good data
@@ -167,11 +215,17 @@ export async function GET(req: Request) {
 
       await send();
 
+      // Past / future dates: one fetch is enough — no live updates needed
+      if (!isToday) {
+        controller.close();
+        return;
+      }
+
+      // Today: keep updating every 5 s for up to 5 minutes, then EventSource auto-reconnects
       let ticks = 0;
       const interval = setInterval(async () => {
         ticks++;
         if (ticks >= 60) {
-          // Close after 5 minutes; EventSource auto-reconnects
           clearInterval(interval);
           controller.close();
           return;

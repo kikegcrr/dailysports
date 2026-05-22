@@ -284,40 +284,74 @@ export default function InteractivePitch({ match }: PitchProps) {
       {/* Stats view */}
       {view === "stats" && (
         <div className="p-4 space-y-3">
-          {match.stats && Object.entries({
-            "Posesión": match.stats.possession,
-            "Tiros": match.stats.shots,
-            "Tiros a puerta": match.stats.shotsOnTarget,
-            "Córners": match.stats.corners,
-            "Faltas": match.stats.fouls,
-            "T. Amarillas": match.stats.yellowCards,
-          }).map(([label, values]) => {
-            if (!values || (!values[0] && !values[1])) return null;
-            const total = values[0] + values[1] || 1;
-            const homePct = (values[0] / total) * 100;
-            return (
-              <div key={label}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-bold text-white">{values[0]}</span>
-                  <span className="text-gray-400">{label}</span>
-                  <span className="font-bold text-white">{values[1]}</span>
+          {/* Team headers */}
+          <div className="flex items-center justify-between text-xs text-gray-400 mb-1 px-1">
+            <span className="font-semibold text-white truncate max-w-[35%]">{match.home.shortName}</span>
+            <span>Estadísticas</span>
+            <span className="font-semibold text-white truncate max-w-[35%] text-right">{match.away.shortName}</span>
+          </div>
+
+          {match.stats && (() => {
+            const rows = [
+              { label: "Posesión %",    values: match.stats!.possession,    suffix: "%" },
+              { label: "Tiros",         values: match.stats!.shots,         suffix: ""  },
+              { label: "A puerta",      values: match.stats!.shotsOnTarget, suffix: ""  },
+              { label: "Córners",       values: match.stats!.corners,       suffix: ""  },
+              { label: "Faltas",        values: match.stats!.fouls,         suffix: ""  },
+              { label: "T. Amarillas",  values: match.stats!.yellowCards,   suffix: ""  },
+            ].filter(({ values }) => values && (values[0] || values[1]));
+
+            if (rows.length === 0) return null;
+
+            return rows.map(({ label, values, suffix }) => {
+              const v0 = values![0] ?? 0;
+              const v1 = values![1] ?? 0;
+              const total   = v0 + v1 || 1;
+              const homePct = (v0 / total) * 100;
+              return (
+                <div key={label}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-bold text-white w-10">{v0}{suffix}</span>
+                    <span className="text-gray-500 text-[11px]">{label}</span>
+                    <span className="font-bold text-white w-10 text-right">{v1}{suffix}</span>
+                  </div>
+                  <div className="flex h-1.5 rounded-full overflow-hidden bg-sport-border">
+                    <div className="bg-emerald-500 transition-all duration-700" style={{ width: `${homePct}%` }} />
+                    <div className="bg-blue-500 transition-all duration-700"   style={{ width: `${100 - homePct}%` }} />
+                  </div>
                 </div>
-                <div className="flex h-1.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-500 transition-all duration-1000"
-                    style={{ width: `${homePct}%` }}
-                  />
-                  <div
-                    className="bg-blue-500 transition-all duration-1000"
-                    style={{ width: `${100 - homePct}%` }}
-                  />
-                </div>
+              );
+            });
+          })()}
+
+          {(!match.stats || Object.values(match.stats).every((v) => !v)) && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm">
+                {match.status === "scheduled"
+                  ? "⏳ El partido aún no ha empezado"
+                  : "📊 ESPN no ha publicado las estadísticas de este partido"}
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Las stats suelen estar disponibles en partidos en vivo y recién terminados
+              </p>
+            </div>
+          )}
+
+          {/* Leaders */}
+          {match.leaders && match.leaders.length > 0 && (
+            <div className="mt-4 border-t border-sport-border pt-3">
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Destacados</p>
+              <div className="space-y-1.5">
+                {(match.leaders as { stat: string; value: string; name: string }[]).map((l, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400">{l.stat}</span>
+                    <span className="text-white font-semibold">{l.name}</span>
+                    <span className="text-gold-400 font-bold">{l.value}</span>
+                  </div>
+                ))}
               </div>
-            );
-          })}
-          {!match.stats || Object.values(match.stats).every((v) => !v) ? (
-            <p className="text-center text-gray-500 text-sm py-6">Estadísticas no disponibles</p>
-          ) : null}
+            </div>
+          )}
         </div>
       )}
 

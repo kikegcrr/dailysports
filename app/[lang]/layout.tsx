@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import TickerBar from "@/components/layout/TickerBar";
 import VoiceReader from "@/components/ui/VoiceReader";
 import { VoiceReaderProvider } from "@/lib/voice-reader-context";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 export default async function LocaleLayout({
   children,
@@ -19,16 +20,18 @@ export default async function LocaleLayout({
   const dict = await getDictionary(lang as Locale);
 
   return (
-    <VoiceReaderProvider>
-      <div className="flex flex-col min-h-screen">
-        <TickerBar />
-        <Header lang={lang} dict={dict.nav} />
-        <main className="flex-1 max-w-screen-2xl w-full mx-auto px-4 py-6">
-          {children}
-        </main>
-        <Footer lang={lang} />
-        <VoiceReader />
-      </div>
-    </VoiceReaderProvider>
+    <AuthProvider>
+      <VoiceReaderProvider>
+        <div className="flex flex-col min-h-screen">
+          <TickerBar />
+          <Header lang={lang} dict={dict.nav} />
+          <main className="flex-1 max-w-screen-2xl w-full mx-auto px-4 py-6">
+            {children}
+          </main>
+          <Footer lang={lang} />
+          <VoiceReader />
+        </div>
+      </VoiceReaderProvider>
+    </AuthProvider>
   );
 }

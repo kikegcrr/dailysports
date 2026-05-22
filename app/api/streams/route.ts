@@ -42,10 +42,12 @@ async function checkTwitchLive(
     const headers = { "Client-Id": clientId, Authorization: `Bearer ${accessToken}` };
 
     // Fetch live streams + user profiles in parallel
-    const logins = channelLogins.slice(0, 100).map((l) => `user_login=${l}`).join("&");
+    // NOTE: streams endpoint uses "user_login", users endpoint uses "login" — different params!
+    const streamParams = channelLogins.slice(0, 100).map((l) => `user_login=${l}`).join("&");
+    const userParams  = channelLogins.slice(0, 100).map((l) => `login=${l}`).join("&");
     const [streamsRes, usersRes] = await Promise.all([
-      fetch(`https://api.twitch.tv/helix/streams?${logins}`, { headers, next: { revalidate: 60 } }),
-      fetch(`https://api.twitch.tv/helix/users?${logins}`, { headers, next: { revalidate: 3600 } }),
+      fetch(`https://api.twitch.tv/helix/streams?${streamParams}`, { headers, next: { revalidate: 60 } }),
+      fetch(`https://api.twitch.tv/helix/users?${userParams}`,  { headers, next: { revalidate: 3600 } }),
     ]);
 
     const [streamsData, usersData] = await Promise.all([streamsRes.json(), usersRes.json()]);
@@ -137,16 +139,16 @@ const ALL_CHANNELS: StreamChannel[] = [
   { id: "t2", name: "Mister Chip", platform: "twitch", handle: "misterchip", category: "futbol", description: "El rey de las estadísticas en directo. Resultados, datos y debates de fútbol.", followers: "450K", profileUrl: "https://twitch.tv/misterchip", avatarUrl: "https://unavatar.io/twitch/misterchip" },
   { id: "t3", name: "El Chiringuito TV", platform: "twitch", handle: "elchiringuitotv", category: "debate", description: "El programa deportivo más visto de España en Twitch.", followers: "380K", profileUrl: "https://twitch.tv/elchiringuitotv", avatarUrl: "https://unavatar.io/twitch/elchiringuitotv" },
   { id: "t4", name: "Ibai Llanos", platform: "twitch", handle: "ibai", category: "multideporte", description: "Velada del Año, retransmisiones de Champions y grandes eventos deportivos.", followers: "12M", profileUrl: "https://twitch.tv/ibai", avatarUrl: "https://unavatar.io/twitch/ibai" },
-  { id: "t5", name: "Plex", platform: "twitch", handle: "plexer69", category: "baloncesto", description: "NBA en español: análisis, retransmisiones y debates de cada jornada.", followers: "890K", profileUrl: "https://twitch.tv/plexer69", avatarUrl: "https://unavatar.io/twitch/plexer69" },
-  { id: "t6", name: "NaRa", platform: "twitch", handle: "nara_tv", category: "baloncesto", description: "Análisis profundo de NBA, ACB y selecciones nacionales.", followers: "420K", profileUrl: "https://twitch.tv/nara_tv", avatarUrl: "https://unavatar.io/twitch/nara_tv" },
-  { id: "t7", name: "XokaS", platform: "twitch", handle: "elrealxokas", category: "debate", description: "Debate deportivo, análisis y predicciones de fútbol cada día.", followers: "890K", profileUrl: "https://twitch.tv/elrealxokas", avatarUrl: "https://unavatar.io/twitch/elrealxokas" },
+  { id: "t5", name: "Gerard Romero", platform: "twitch", handle: "gerardromero", category: "debate", description: "Fundador de Jijantes FC y periodista deportivo. Noticias de fútbol en tiempo real.", followers: "2M", profileUrl: "https://twitch.tv/gerardromero", avatarUrl: "https://unavatar.io/twitch/gerardromero" },
+  { id: "t6", name: "Jan", platform: "twitch", handle: "jan", category: "debate", description: "Co-fundador de Jijantes FC. Debate y análisis del fútbol de élite cada día.", followers: "650K", profileUrl: "https://twitch.tv/jan", avatarUrl: "https://unavatar.io/twitch/jan" },
+  { id: "t7", name: "Pekedexter", platform: "twitch", handle: "pekedexter", category: "futbol", description: "Análisis táctico de fútbol, LaLiga, Champions League y tendencias del juego.", followers: "480K", profileUrl: "https://twitch.tv/pekedexter", avatarUrl: "https://unavatar.io/twitch/pekedexter" },
   { id: "t8", name: "Diegol", platform: "twitch", handle: "diegol10", category: "futbol", description: "Análisis táctico de fútbol y retransmisiones comentadas de LaLiga.", followers: "340K", profileUrl: "https://twitch.tv/diegol10", avatarUrl: "https://unavatar.io/twitch/diegol10" },
   { id: "t9", name: "SaHo Football", platform: "twitch", handle: "saho_football", category: "debate", description: "Debate de fútbol: fichajes, análisis y noticias de actualidad.", followers: "180K", profileUrl: "https://twitch.tv/saho_football", avatarUrl: "https://unavatar.io/twitch/saho_football" },
   { id: "t10", name: "Carrerazo", platform: "twitch", handle: "carrerazo", category: "multideporte", description: "Fórmula 1, MotoGP y deportes de motor en español.", followers: "340K", profileUrl: "https://twitch.tv/carrerazo", avatarUrl: "https://unavatar.io/twitch/carrerazo" },
   { id: "t11", name: "Zeein", platform: "twitch", handle: "zeein", category: "futbol", description: "Fútbol, baloncesto y deportes con análisis profundos.", followers: "1.2M", profileUrl: "https://twitch.tv/zeein", avatarUrl: "https://unavatar.io/twitch/zeein" },
   { id: "t12", name: "LoJuegasTV", platform: "twitch", handle: "lojuegastv", category: "multideporte", description: "Multideporte: fútbol, baloncesto y deportes de combate.", followers: "280K", profileUrl: "https://twitch.tv/lojuegastv", avatarUrl: "https://unavatar.io/twitch/lojuegastv" },
-  { id: "t13", name: "Perxitaa", platform: "twitch", handle: "perxitaa", category: "futbol", description: "Fútbol y EA Sports FC con partidas y análisis en directo.", followers: "3M", profileUrl: "https://twitch.tv/perxitaa", avatarUrl: "https://unavatar.io/twitch/perxitaa" },
-  { id: "t14", name: "Coscu", platform: "twitch", handle: "coscu", category: "futbol", description: "Streamer argentino de fútbol: retransmisiones y debates del deporte sudamericano.", followers: "2.5M", profileUrl: "https://twitch.tv/coscu", avatarUrl: "https://unavatar.io/twitch/coscu" },
+  { id: "t13", name: "Adrián Contreras", platform: "twitch", handle: "adricontreras", category: "debate", description: "Periodista deportivo. Debates de fútbol, fichajes y actualidad deportiva española.", followers: "220K", profileUrl: "https://twitch.tv/adricontreras", avatarUrl: "https://unavatar.io/twitch/adricontreras" },
+  { id: "t14", name: "TyC Sports", platform: "twitch", handle: "tycsports", category: "multideporte", description: "Canal líder del deporte en Argentina: fútbol, tenis, boxeo y todos los deportes.", followers: "1.8M", profileUrl: "https://twitch.tv/tycsports", avatarUrl: "https://unavatar.io/twitch/tycsports" },
 
   // === YOUTUBE — avatar from unavatar.io ===
   { id: "y1", name: "El Chiringuito de Jugones", platform: "youtube", handle: "ElChiringuitodejugones", category: "debate", description: "El programa deportivo nocturno más polémico de España.", followers: "3.8M", profileUrl: "https://youtube.com/@ElChiringuitodejugones", avatarUrl: "https://unavatar.io/youtube/@ElChiringuitodejugones" },

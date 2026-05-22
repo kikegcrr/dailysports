@@ -4,32 +4,47 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Zap, LogIn, Eye, EyeOff } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
+
+function translateError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("invalid login credentials") || m.includes("invalid credentials"))
+    return "Email o contraseña incorrectos. Comprueba tus datos e inténtalo de nuevo.";
+  if (m.includes("email not confirmed"))
+    return "Debes confirmar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.";
+  if (m.includes("too many requests") || m.includes("rate limit"))
+    return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
+  if (m.includes("user not found"))
+    return "No existe una cuenta con ese email.";
+  if (m.includes("network") || m.includes("fetch"))
+    return "Error de conexión. Comprueba tu internet e inténtalo de nuevo.";
+  return `Error al iniciar sesión: ${msg}`;
+}
 
 export default function LoginPage() {
   const { lang } = useParams() as { lang: string };
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "login", email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const supabase = createClient();
+      const { error: sbError } = await supabase.auth.signInWithPassword({ email, password });
+      if (sbError) {
+        setError(translateError(sbError.message));
+        return;
+      }
       router.push(`/${lang}`);
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión");
+      setError(err instanceof Error ? translateError(err.message) : "Error inesperado. Inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -66,6 +81,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               placeholder="tu@email.com"
               className="w-full bg-sport-border text-white rounded-xl px-4 py-2.5 text-sm placeholder:text-gray-600 border border-transparent focus:border-gold-500/50 focus:outline-none transition-colors"
             />
@@ -79,6 +95,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 placeholder="••••••••"
                 className="w-full bg-sport-border text-white rounded-xl px-4 py-2.5 text-sm placeholder:text-gray-600 border border-transparent focus:border-gold-500/50 focus:outline-none transition-colors pr-10"
               />

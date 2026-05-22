@@ -78,16 +78,27 @@ export default function MatchCard({ match, sport = "football", featured }: Match
           </div>
 
           {/* Score */}
-          <div className="flex items-center gap-3 px-4 shrink-0">
-            <span className="text-xl font-display text-white">{match.home.score}</span>
-            <span className="text-gray-600 text-sm">
-              {match.status === "scheduled"
-                ? match.startTime
-                  ? new Date(match.startTime).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })
-                  : "vs"
-                : "-"}
-            </span>
-            <span className="text-xl font-display text-white">{match.away.score}</span>
+          <div className="flex items-center justify-center gap-3 px-4 shrink-0">
+            {match.status === "scheduled" ? (
+              <div className="flex flex-col items-center">
+                <span className="text-base font-semibold text-blue-400">
+                  {match.startTime
+                    ? new Date(match.startTime).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })
+                    : "vs"}
+                </span>
+                <span className="text-[10px] text-gray-600 uppercase tracking-widest mt-0.5">próximo</span>
+              </div>
+            ) : (
+              <>
+                <span className={`text-2xl font-display ${match.status === "live" ? "text-emerald-400" : "text-white"}`}>
+                  {match.home.score}
+                </span>
+                <span className="text-gray-600 text-sm">-</span>
+                <span className={`text-2xl font-display ${match.status === "live" ? "text-emerald-400" : "text-white"}`}>
+                  {match.away.score}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Away team */}

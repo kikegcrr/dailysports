@@ -6,50 +6,45 @@ import Link from "next/link";
 import { Users, ExternalLink, Play } from "lucide-react";
 import { YouTubeVideo } from "@/app/api/youtube/route";
 
-// Real top sports accounts — direct profile links, real @handles
-const TOP_ACCOUNTS = [
-  // Twitter/X
-  { platform: "twitter", username: "misterchip", displayName: "Mister Chip", description: "El estadístico más famoso del fútbol español. Datos, resultados y curiosidades en tiempo real.", followers: "2.1M seguidores", profileUrl: "https://twitter.com/misterchip" },
-  { platform: "twitter", username: "FabrizioRomano", displayName: "Fabrizio Romano", description: "\"Here we go!\" El periodista de transferencias más seguido del mundo.", followers: "22M seguidores", profileUrl: "https://twitter.com/FabrizioRomano" },
-  { platform: "twitter", username: "elchiringuitotv", displayName: "El Chiringuito TV", description: "El debate deportivo más polémico de España, ahora en X.", followers: "3M seguidores", profileUrl: "https://twitter.com/elchiringuitotv" },
-  { platform: "twitter", username: "Alfremartinezz", displayName: "Alfredo Martínez", description: "Periodista de Onda Cero especializado en el Real Madrid. Noticias de primera mano.", followers: "890K seguidores", profileUrl: "https://twitter.com/Alfremartinezz" },
-  { platform: "twitter", username: "marca", displayName: "MARCA", description: "El periódico deportivo más leído de España.", followers: "5M seguidores", profileUrl: "https://twitter.com/marca" },
-  { platform: "twitter", username: "mundodeportivo", displayName: "Mundo Deportivo", description: "Todas las noticias del FC Barcelona y el deporte internacional.", followers: "2.8M seguidores", profileUrl: "https://twitter.com/mundodeportivo" },
-  // Instagram
-  { platform: "instagram", username: "realmadrid", displayName: "Real Madrid C.F.", description: "Cuenta oficial del club más laureado del mundo. Noticias, goles y momentos únicos.", followers: "150M seguidores", profileUrl: "https://instagram.com/realmadrid" },
-  { platform: "instagram", username: "fcbarcelona", displayName: "FC Barcelona", description: "¡Visca el Barça! El club azulgrana en Instagram.", followers: "120M seguidores", profileUrl: "https://instagram.com/fcbarcelona" },
-  { platform: "instagram", username: "nba", displayName: "NBA", description: "Los mejores dunks, jugadas y momentos de la mejor liga de baloncesto del mundo.", followers: "90M seguidores", profileUrl: "https://instagram.com/nba" },
-  { platform: "instagram", username: "laliga", displayName: "LaLiga", description: "La liga de fútbol más apasionante del mundo.", followers: "45M seguidores", profileUrl: "https://instagram.com/laliga" },
-  { platform: "instagram", username: "ibai", displayName: "Ibai Llanos", description: "El mayor streamer de España. Momentos de la Velada del Año, eventos deportivos y más.", followers: "6M seguidores", profileUrl: "https://instagram.com/ibai" },
-  { platform: "instagram", username: "jijantesfc", displayName: "Jijantes FC", description: "El equipo de fútbol de streamers más famoso del mundo.", followers: "1.5M seguidores", profileUrl: "https://instagram.com/jijantesfc" },
-  // TikTok
-  { platform: "tiktok", username: "nba", displayName: "NBA", description: "Highlights, dunks imposibles y los mejores momentos del baloncesto profesional.", followers: "18M seguidores", profileUrl: "https://tiktok.com/@nba" },
-  { platform: "tiktok", username: "laliga", displayName: "LaLiga", description: "Goles, jugadas y la mejor selección del fútbol español en formato corto.", followers: "12M seguidores", profileUrl: "https://tiktok.com/@laliga" },
-  { platform: "tiktok", username: "ibaillanos9", displayName: "Ibai Llanos", description: "Clips, humor y los mejores momentos del mayor streamer de España.", followers: "8M seguidores", profileUrl: "https://tiktok.com/@ibaillanos9" },
-  { platform: "tiktok", username: "chiringuito_tv", displayName: "El Chiringuito TV", description: "Las reacciones, debates y momentazos del programa más polémico del deporte español.", followers: "3M seguidores", profileUrl: "https://tiktok.com/@chiringuito_tv" },
-  { platform: "tiktok", username: "realmadrid", displayName: "Real Madrid C.F.", description: "Los mejores momentos del club más ganador del mundo en TikTok.", followers: "22M seguidores", profileUrl: "https://tiktok.com/@realmadrid" },
-  { platform: "tiktok", username: "fcbarcelona", displayName: "FC Barcelona", description: "Goles, celebraciones y el Barça en formato vídeo corto.", followers: "15M seguidores", profileUrl: "https://tiktok.com/@fcbarcelona" },
+// Top Spanish sports Twitter accounts — verified handles
+const TWITTER_ACCOUNTS = [
+  { username: "2010MisterChip",  displayName: "Mister Chip",       description: "El estadístico más famoso del fútbol español. Datos y resultados en tiempo real.", followers: "2.1M" },
+  { username: "FabrizioRomano",  displayName: "Fabrizio Romano",   description: "\"Here we go!\" El periodista de transferencias más seguido del mundo.", followers: "22M" },
+  { username: "elchiringuitotv", displayName: "El Chiringuito TV", description: "El debate deportivo más polémico de España, ahora en X.", followers: "3M" },
+  { username: "Alfremartinezz",  displayName: "Alfredo Martínez",  description: "Periodista Onda Cero especializado en el Real Madrid. Noticias de primera mano.", followers: "920K" },
+  { username: "marca",           displayName: "MARCA",             description: "El periódico deportivo más leído de España.", followers: "5M" },
+  { username: "mundodeportivo",  displayName: "Mundo Deportivo",   description: "Todas las noticias del FC Barcelona y el deporte internacional.", followers: "2.8M" },
+  { username: "AS_com",          displayName: "Diario AS",         description: "El deporte español y mundial en directo.", followers: "4.8M" },
+  { username: "relevo",          displayName: "Relevo",            description: "El nuevo referente del periodismo deportivo digital.", followers: "580K" },
+  { username: "LaLiga",          displayName: "LaLiga EA Sports",  description: "Cuenta oficial de LaLiga. Resultados, stats y todo el fútbol español.", followers: "11M" },
+  { username: "realmadrid",      displayName: "Real Madrid CF",    description: "Cuenta oficial del club más laureado del mundo.", followers: "43M" },
+  { username: "FCBarcelona_es",  displayName: "FC Barcelona",      description: "Canal oficial del FC Barcelona en español.", followers: "12M" },
+  { username: "Atleti",          displayName: "Atlético de Madrid",description: "Cuenta oficial del Atlético de Madrid.", followers: "5.2M" },
+  { username: "NBASpain",        displayName: "NBA España",        description: "La NBA en español. Noticias, resultados y vídeos.", followers: "1.4M" },
+  { username: "JijantesFC",      displayName: "Jijantes FC",       description: "El canal de Gerard Romero y Jan. Opinión sin filtros.", followers: "940K" },
+  { username: "ChampionsLeague", displayName: "Champions League",  description: "Cuenta oficial de la UEFA Champions League.", followers: "42M" },
+  { username: "carrusel",        displayName: "Carrusel Deportivo",description: "El programa deportivo referente de los fines de semana en la SER.", followers: "850K" },
 ];
-
-const PLATFORM_META: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
-  twitter:   { icon: "𝕏", label: "Twitter / X",  color: "text-sky-400",  bg: "bg-sky-500/10",  border: "border-sky-500/30" },
-  instagram: { icon: "◈", label: "Instagram",     color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/30" },
-  tiktok:    { icon: "♫", label: "TikTok",        color: "text-white",    bg: "bg-white/5",     border: "border-white/15" },
-};
 
 const YOUTUBE_CHANNELS = [
-  { name: "El Chiringuito de Jugones", handle: "ElChiringuitodejugones", subs: "3.8M", desc: "El debate nocturno más polémico del fútbol español" },
+  { name: "El Chiringuito de Jugones", handle: "elchiringuitodejugones", subs: "3.8M", desc: "El debate nocturno más polémico del fútbol español" },
   { name: "Jijantes FC",               handle: "JijantesFC",             subs: "2.1M", desc: "Opinión y debate futbolístico sin filtros" },
-  { name: "Relevo",                    handle: "RelevoMedia",            subs: "950K", desc: "El medio deportivo digital de nueva generación" },
+  { name: "Relevo",                    handle: "relevo",                 subs: "950K", desc: "El medio deportivo digital de nueva generación" },
   { name: "NBA España",                handle: "NBAEspana",              subs: "1.2M", desc: "Todo el baloncesto de la NBA en español" },
-  { name: "Basket Total",             handle: "BasketTotal",            subs: "890K", desc: "Análisis y debate de NBA y ACB" },
-  { name: "LaLiga",                    handle: "LaLiga",                 subs: "2M",   desc: "Canal oficial de LaLiga Santander" },
-  { name: "FC Barcelona",             handle: "FCBarcelona_es",         subs: "4M",   desc: "Canal oficial del FC Barcelona" },
-  { name: "Real Madrid TV",           handle: "realmadridtv",           subs: "3M",   desc: "Canal oficial del Real Madrid CF" },
-  { name: "El Larguero SER",          handle: "ElLarguero",             subs: "1.4M", desc: "El histórico programa nocturno de Cadena SER" },
+  { name: "Basket Total",              handle: "BasketTotal",            subs: "890K", desc: "Análisis y debate de NBA y ACB" },
+  { name: "LaLiga EA Sports",          handle: "LaLiga",                 subs: "2M",   desc: "Canal oficial de LaLiga EA Sports" },
+  { name: "FC Barcelona",              handle: "FCBarcelona_es",         subs: "4M",   desc: "Canal oficial del FC Barcelona" },
+  { name: "Real Madrid",               handle: "realmadrid",             subs: "3M",   desc: "Canal oficial del Real Madrid CF" },
+  { name: "El Larguero SER",           handle: "ElLarguero",             subs: "1.4M", desc: "El histórico programa nocturno de Cadena SER" },
+  { name: "Carrusel Deportivo",        handle: "CarruselDeportivo",      subs: "820K", desc: "El programa deportivo de los fines de semana en la SER" },
+  { name: "Tiempo de Juego COPE",      handle: "TiempodeJuegoCOPE",      subs: "640K", desc: "La cobertura en vivo del fútbol en COPE" },
+  { name: "Diario AS",                 handle: "diarioas",               subs: "1.1M", desc: "El deporte español en vídeo" },
+  { name: "MARCA TV",                  handle: "marcatv",                subs: "890K", desc: "El vídeo periodismo de MARCA" },
+  { name: "RTVE Deportes",             handle: "rtvedeportes",           subs: "450K", desc: "Los deportes de la televisión pública española" },
+  { name: "Movistar F1",               handle: "movistarF1",             subs: "320K", desc: "Fórmula 1 y motor en Movistar Plus+" },
 ];
 
-type Tab = "youtube" | "twitter" | "instagram" | "tiktok";
+type Tab = "youtube" | "twitter";
 
 export default function SocialPage() {
   const { lang } = useParams() as { lang: string };
@@ -64,8 +59,6 @@ export default function SocialPage() {
       .catch(() => {})
       .finally(() => setLoadingVideos(false));
   }, []);
-
-  const filteredAccounts = TOP_ACCOUNTS.filter((a) => a.platform === activeTab);
 
   return (
     <div className="space-y-8">
@@ -85,16 +78,14 @@ export default function SocialPage() {
 
       {/* Platform tabs */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {(["youtube", "twitter", "instagram", "tiktok"] as Tab[]).map((tab) => {
+        {(["youtube", "twitter"] as Tab[]).map((tab) => {
           const active = activeTab === tab;
           const styles: Record<Tab, string> = {
-            youtube:   active ? "text-red-400 border-red-500/40 bg-red-500/10" : "text-gray-500 border-sport-border bg-sport-card hover:text-red-400",
-            twitter:   active ? "text-sky-400 border-sky-500/40 bg-sky-500/10" : "text-gray-500 border-sport-border bg-sport-card hover:text-sky-400",
-            instagram: active ? "text-pink-400 border-pink-500/40 bg-pink-500/10" : "text-gray-500 border-sport-border bg-sport-card hover:text-pink-400",
-            tiktok:    active ? "text-white border-white/25 bg-white/8" : "text-gray-500 border-sport-border bg-sport-card hover:text-white",
+            youtube: active ? "text-red-400 border-red-500/40 bg-red-500/10" : "text-gray-500 border-sport-border bg-sport-card hover:text-red-400",
+            twitter: active ? "text-sky-400 border-sky-500/40 bg-sky-500/10" : "text-gray-500 border-sport-border bg-sport-card hover:text-sky-400",
           };
-          const icons:  Record<Tab, string> = { youtube: "▶", twitter: "𝕏", instagram: "◈", tiktok: "♫" };
-          const labels: Record<Tab, string> = { youtube: "YouTube", twitter: "Twitter / X", instagram: "Instagram", tiktok: "TikTok" };
+          const icons:  Record<Tab, string> = { youtube: "▶", twitter: "𝕏" };
+          const labels: Record<Tab, string> = { youtube: "YouTube", twitter: "Twitter / X" };
           return (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border whitespace-nowrap transition-colors ${styles[tab]}`}>
@@ -104,10 +95,9 @@ export default function SocialPage() {
         })}
       </div>
 
-      {/* YouTube section */}
+      {/* YouTube */}
       {activeTab === "youtube" && (
         <div className="space-y-8">
-          {/* Latest real videos via RSS */}
           <section>
             <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
               <span className="w-1 h-5 bg-red-500 rounded-full" />
@@ -131,7 +121,6 @@ export default function SocialPage() {
             )}
           </section>
 
-          {/* Channel directory */}
           <section>
             <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
               <span className="w-1 h-5 bg-red-500/50 rounded-full" />
@@ -157,45 +146,34 @@ export default function SocialPage() {
         </div>
       )}
 
-      {/* Twitter / Instagram / TikTok */}
-      {activeTab !== "youtube" && (
+      {/* Twitter / X */}
+      {activeTab === "twitter" && (
         <section>
           <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-            <span className={`w-1 h-5 rounded-full ${activeTab === "twitter" ? "bg-sky-500" : activeTab === "instagram" ? "bg-pink-500" : "bg-white/40"}`} />
-            Cuentas destacadas en {PLATFORM_META[activeTab].label}
+            <span className="w-1 h-5 rounded-full bg-sky-500" />
+            Cuentas destacadas en Twitter / X
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredAccounts.map((acc) => {
-              const meta = PLATFORM_META[acc.platform];
-              const avatarSrc = `https://unavatar.io/${acc.platform}/${acc.username}`;
-              return (
-                <a key={acc.username} href={acc.profileUrl} target="_blank" rel="noopener noreferrer"
-                  className={`group rounded-2xl border p-4 transition-all hover:scale-[1.01] ${meta.bg} ${meta.border}`}>
-                  <div className="flex items-start gap-3 mb-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={avatarSrc} alt={acc.displayName}
-                      className="w-12 h-12 rounded-full border border-white/10 object-cover shrink-0 bg-sport-card"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.displayName)}&background=1a1a2e&color=ffffff&size=48`;
-                      }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-semibold text-white text-sm">{acc.displayName}</p>
-                        <span className={`text-xs font-semibold ${meta.color}`}>{meta.icon}</span>
-                      </div>
-                      <p className={`text-xs ${meta.color}`}>@{acc.username}</p>
-                      <p className="text-xs text-gray-600">{acc.followers}</p>
-                    </div>
-                    <ExternalLink size={14} className={`${meta.color} shrink-0 opacity-60 group-hover:opacity-100 transition-opacity`} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {TWITTER_ACCOUNTS.map((acc) => (
+              <a key={acc.username} href={`https://twitter.com/${acc.username}`} target="_blank" rel="noopener noreferrer"
+                className="group flex items-start gap-3 p-4 rounded-2xl border bg-sky-500/5 border-sky-500/20 hover:border-sky-500/50 hover:bg-sky-500/10 transition-all">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`https://unavatar.io/twitter/${acc.username}`} alt={acc.displayName}
+                  className="w-11 h-11 rounded-full border border-white/10 object-cover shrink-0 bg-sport-border"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(acc.displayName)}&background=0f172a&color=ffffff&size=44`;
+                  }} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="font-semibold text-white text-sm truncate group-hover:text-sky-300 transition-colors">{acc.displayName}</p>
+                    <ExternalLink size={12} className="text-gray-600 group-hover:text-sky-400 shrink-0 transition-colors" />
                   </div>
-                  <p className="text-xs text-gray-400 line-clamp-2 mb-3">{acc.description}</p>
-                  <div className={`text-xs font-medium ${meta.color} opacity-70 group-hover:opacity-100 transition-opacity`}>
-                    Ver en {meta.label} →
-                  </div>
-                </a>
-              );
-            })}
+                  <p className="text-xs text-sky-400/80">@{acc.username} · {acc.followers}</p>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">{acc.description}</p>
+                </div>
+              </a>
+            ))}
           </div>
         </section>
       )}

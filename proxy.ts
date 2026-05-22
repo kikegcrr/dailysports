@@ -17,7 +17,7 @@ function getLocale(request: NextRequest): string {
   return DEFAULT_LOCALE;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const pathnameHasLocale = LOCALES.some(
@@ -30,11 +30,16 @@ export function middleware(request: NextRequest) {
   const locale = getLocale(request);
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname}`;
+
+  // Root path: rewrite (not redirect) so the URL stays as https://dailysports.es
+  if (pathname === "/") {
+    return NextResponse.rewrite(url);
+  }
+
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  // Exclude: API routes, Next.js internals, static assets, and Google verification files
   matcher: [
     "/((?!api|_next/static|_next/image|favicon.ico|icons|images|ads\\.txt|robots\\.txt|sitemap\\.xml).*)",
   ],
