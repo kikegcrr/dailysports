@@ -4,19 +4,20 @@ import { LiveMatch } from "@/app/api/scores/route";
 import InteractivePitch from "./InteractivePitch";
 import BasketballCourt from "./BasketballCourt";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import FavoriteButton from "@/components/favorites/FavoriteButton";
 
 const LEAGUE_LABELS: Record<string, string> = {
   laliga: "LaLiga", champions: "Champions", premier: "Premier League",
   seriea: "Serie A", bundesliga: "Bundesliga", ligue1: "Ligue 1",
   ligaportugal: "Liga Portugal", europa: "Europa League",
-  libertadores: "Libertadores", nba: "NBA", acb: "ACB",
+  libertadores: "Libertadores", nba: "NBA", euroleague: "EuroLeague", acb: "ACB",
   atp: "ATP", wta: "WTA",
 };
 
 const LEAGUE_COLORS: Record<string, string> = {
   laliga: "text-red-400", champions: "text-blue-400", premier: "text-purple-400",
   seriea: "text-blue-300", bundesliga: "text-red-300", ligue1: "text-blue-200",
-  nba: "text-orange-400", acb: "text-red-400",
+  nba: "text-orange-400", euroleague: "text-sky-400", acb: "text-red-400",
   atp: "text-yellow-400", wta: "text-pink-400",
 };
 
@@ -38,7 +39,7 @@ export default function MatchCard({ match, sport = "football", featured }: Match
   const statusInfo = STATUS_LABELS[match.status];
 
   return (
-    <div className={`bg-sport-card border rounded-2xl overflow-hidden transition-all duration-300 ${
+    <div className={`group/card bg-sport-card border rounded-2xl overflow-hidden transition-all duration-300 ${
       match.status === "live" ? "border-emerald-500/40 shadow-lg shadow-emerald-500/10" : "border-sport-border hover:border-gold-500/30"
     }`}>
       {/* Compact header */}
@@ -47,10 +48,17 @@ export default function MatchCard({ match, sport = "football", featured }: Match
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className={`text-xs font-semibold ${LEAGUE_COLORS[match.league] || "text-gray-400"}`}>
               {LEAGUE_LABELS[match.league] || match.league.toUpperCase()}
             </span>
+            <FavoriteButton
+              type="league"
+              value={match.league}
+              label={LEAGUE_LABELS[match.league] || match.league}
+              size="xs"
+              className="opacity-0 group-hover/card:opacity-100 transition-opacity"
+            />
             {match.venue && (
               <span className="text-xs text-gray-600 hidden sm:inline">· {match.venue}</span>
             )}

@@ -1,6 +1,6 @@
 "use client";
 import { ExternalLink, Users, Calendar, Heart } from "lucide-react";
-import { useState } from "react";
+import { useFavorites } from "@/lib/favorites-context";
 
 export interface Creator {
   id: string;
@@ -25,7 +25,8 @@ const PLATFORM_ICONS: Record<string, { icon: string; color: string; bg: string }
 };
 
 export default function CreatorCard({ creator }: { creator: Creator }) {
-  const [saved, setSaved] = useState(false);
+  const { has, toggle } = useFavorites();
+  const saved = has("creator", creator.id);
   const p = PLATFORM_ICONS[creator.platform];
 
   return (
@@ -53,7 +54,8 @@ export default function CreatorCard({ creator }: { creator: Creator }) {
             {p.icon} {creator.platform}
           </span>
           <button
-            onClick={() => setSaved(!saved)}
+            onClick={() => toggle("creator", creator.id)}
+            title={saved ? "Quitar de favoritos" : "Añadir a favoritos"}
             className={`p-1.5 rounded-lg transition-colors ${
               saved ? "text-red-400 bg-red-500/10" : "text-gray-600 hover:text-red-400 hover:bg-red-500/10"
             }`}

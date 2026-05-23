@@ -157,6 +157,24 @@ create policy "Creators can manage their own posts" on public.creator_posts
   for all using (auth.uid() = creator_id);
 
 -- ============================================================
+-- USER FAVORITES (sports, leagues, teams)
+-- ============================================================
+create table if not exists public.user_favorites (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    uuid references auth.users(id) on delete cascade not null,
+  type       text not null check (type in ('sport', 'league', 'team', 'creator', 'player')),
+  value      text not null,
+  created_at timestamptz default now() not null,
+  unique(user_id, type, value)
+);
+
+alter table public.user_favorites enable row level security;
+
+create policy "Users can manage their own favorites" on public.user_favorites
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 create index if not exists idx_forum_threads_topic on public.forum_threads(topic);
@@ -164,3 +182,4 @@ create index if not exists idx_forum_threads_created_at on public.forum_threads(
 create index if not exists idx_forum_replies_thread_id on public.forum_replies(thread_id);
 create index if not exists idx_saved_articles_user_id on public.saved_articles(user_id);
 create index if not exists idx_creator_posts_creator_id on public.creator_posts(creator_id);
+create index if not exists idx_user_favorites_user_id on public.user_favorites(user_id);

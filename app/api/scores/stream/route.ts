@@ -138,6 +138,152 @@ function prevDay(espnDate: string): string {
   return toESPNDate(prev);
 }
 
+// ─── EuroLeague via official XML API ─────────────────────────────────────────
+// api-live.euroleague.net/v1/results — free, no auth, server-accessible.
+// Contains ALL season games; played=1 means finished, played=0 means not yet played.
+// NOTE: Games only get scores once finished. Live status is inferred from time.
+
+const EURO_MONTH_MAP: Record<string, string> = {
+  Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06",
+  Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+};
+
+function euroSeasonCode(yyyymmdd: string): string {
+  const year  = parseInt(yyyymmdd.slice(0, 4));
+  const month = parseInt(yyyymmdd.slice(4, 6));
+  return month >= 9 ? `E${year}` : `E${year - 1}`;
+}
+
+// "Oct 15, 2025" → "20251015"
+function euroDateToYYYYMMDD(dateStr: string): string {
+  const m = dateStr.match(/(\w{3})\s+(\d{1,2}),\s+(\d{4})/);
+  if (!m) return "";
+  return `${m[3]}${EURO_MONTH_MAP[m[1]] ?? "00"}${m[2].padStart(2, "0")}`;
+}
+
+// Time-window heuristic — XML has no live flag
+const EURO_PRE_MS  = 2 * 60 * 60 * 1000; // treat as live 2 h before tip-off
+const EURO_POST_MS = 3 * 60 * 60 * 1000; // treat as live up to 3 h after tip-off
+
+function euroLiveStatus(startISO: string): "live" | "scheduled" | "finished" {
+  const start = new Date(startISO).getTime();
+  const now   = Date.now();
+  if (now >= start - EURO_PRE_MS && now <= start + EURO_POST_MS) return "live";
+  if (now < start - EURO_PRE_MS) return "scheduled";
+  return "finished";
+}
+
+// Module-level logo cache — persists for the lifetime of the edge isolate (one SSE connection)
+let _euroLogos: Record<string, string> = {};
+let _euroLogosFetched = false;
+
+async function fetchEuroLogoMap(): Promise<Record<string, string>> {
+  if (_euroLogosFetched) return _euroLogos;
+  try {
+    const res = await fetch("https://api-live.euroleague.net/v2/clubs", {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await res.json() as { data: any[] };
+      for (const c of data) {
+        if (c.code && c.images?.crest) _euroLogos[c.code] = c.images.crest;
+      }
+    }
+  } catch { /* use empty map on failure */ }
+  _euroLogosFetched = true;
+  return _euroLogos;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseEuroLeagueXML(xml: string, targetDate: string, logos: Record<string, string>): any[] {
+  const gameBlocks = xml.match(/<game>([\s\S]*?)<\/game>/g) ?? [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = [];
+
+  for (const block of gameBlocks) {
+    const tag = (name: string) =>
+      block.match(new RegExp(`<${name}>([^<]*)<\\/${name}>`))?.[1]?.trim() ?? "";
+
+    const date     = tag("date");      // "Oct 15, 2025"
+    const yyyymmdd = euroDateToYYYYMMDD(date);
+    if (yyyymmdd !== targetDate) continue;
+
+    const code      = tag("gamecode"); // "E2025_001"
+    const played    = tag("played") === "true" || tag("played") === "1";
+    const homeCode  = tag("homecode");
+    const awayCode  = tag("awaycode");
+    const homeName  = tag("hometeam");
+    const awayName  = tag("awayteam");
+    const homeScore = tag("homescore");
+    const awayScore = tag("awayscore");
+    const time      = tag("time");     // "20:00" — CET
+
+    // Build ISO start time (CET ≈ UTC+1 during EuroLeague season, ignores DST)
+    let startISO = "";
+    if (date && time) {
+      const [hh, mm] = time.split(":").map(Number);
+      const iso = `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+      const d = new Date(iso);
+      d.setUTCHours(hh - 1, mm, 0, 0);
+      startISO = d.toISOString();
+    }
+
+    const status: string = played
+      ? "finished"
+      : startISO
+        ? euroLiveStatus(startISO)
+        : "scheduled";
+
+    out.push({
+      id:         `euro-${code}`,
+      league:     "euroleague",
+      leagueName: "EuroLeague",
+      status,
+      minute:     undefined,
+      home: {
+        name:      homeName || homeCode,
+        shortName: homeCode,
+        logo:      logos[homeCode] ?? "",
+        score:     played ? homeScore : "0",
+      },
+      away: {
+        name:      awayName || awayCode,
+        shortName: awayCode,
+        logo:      logos[awayCode] ?? "",
+        score:     played ? awayScore : "0",
+      },
+      events:    [],
+      startTime: startISO || undefined,
+    });
+  }
+  return out;
+}
+
+// Fetch EuroLeague (and/or ACB) games for a given YYYYMMDD date.
+// ACB has no free server-accessible API — returns [] gracefully.
+async function fetchSofascoreBasketball(date: string, leagueFilter: string | null): Promise<unknown[]> {
+  if (leagueFilter === "acb") return [];
+
+  const seasonCode = euroSeasonCode(date);
+  const url = `https://api-live.euroleague.net/v1/results?seasonCode=${seasonCode}`;
+  try {
+    const [res, logos] = await Promise.all([
+      fetch(url, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+        headers: { Accept: "application/xml, text/xml, */*" },
+      }),
+      fetchEuroLogoMap(),
+    ]);
+    if (!res.ok) return [];
+    const xml = await res.text();
+    return parseEuroLeagueXML(xml, date, logos);
+  } catch {
+    return [];
+  }
+}
+
 // Fetch all matching leagues for a single ESPN date
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchDate(sport: string, league: string | null, date: string): Promise<any[]> {
@@ -165,19 +311,30 @@ async function fetchDate(sport: string, league: string | null, date: string): Pr
     .flatMap((r) => r.value);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchAllMatches(sport: string, league: string | null, date: string, isToday: boolean) {
-  // Fetch the requested date
-  const main = await fetchDate(sport, league, date);
+  // EuroLeague + ACB come from Sofascore (live scores, full schedule)
+  // ESPN handles everything else (football, NBA, tennis)
+  const wantSofa = league === "euroleague" || league === "acb" ||
+    (!league && (sport === "basketball" || sport === "all"));
+  // Skip ESPN when the filter targets a Sofascore-only league
+  const wantEspn = league !== "euroleague" && league !== "acb";
 
-  let all = main;
+  const [espnMain, sofaMain] = await Promise.all([
+    wantEspn ? fetchDate(sport, league, date)              : Promise.resolve([]),
+    wantSofa ? fetchSofascoreBasketball(date, league)      : Promise.resolve([]),
+  ]);
 
-  if (isToday) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let all: any[] = [...espnMain, ...sofaMain];
+
+  if (isToday && wantEspn) {
     // Also check the previous calendar day — catches US-timezone sports (NBA playoffs etc.)
     // stored under the prior Eastern-time date but live/finishing for European viewers.
     const yesterday = prevDay(date);
     const prev = await fetchDate(sport, league, yesterday);
-    const seenIds = new Set(main.map((m: any) => m.id));
-    // Carry over any match from yesterday that is currently live or at halftime
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const seenIds = new Set(espnMain.map((m: any) => m.id));
     for (const m of prev) {
       if ((m.status === "live" || m.status === "halftime") && !seenIds.has(m.id)) {
         all = [m, ...all];

@@ -6,6 +6,7 @@ import TickerBar from "@/components/layout/TickerBar";
 import VoiceReader from "@/components/ui/VoiceReader";
 import { VoiceReaderProvider } from "@/lib/voice-reader-context";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { FavoritesProvider } from "@/lib/favorites-context";
 
 export default async function LocaleLayout({
   children,
@@ -21,6 +22,7 @@ export default async function LocaleLayout({
 
   return (
     <AuthProvider>
+      <FavoritesProvider>
       <VoiceReaderProvider>
         <div className="flex flex-col min-h-screen">
           <TickerBar />
@@ -32,6 +34,7 @@ export default async function LocaleLayout({
           <VoiceReader />
         </div>
       </VoiceReaderProvider>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

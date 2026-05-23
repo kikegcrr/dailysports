@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import NewsFeed from "@/components/news/NewsFeed";
 import { ForumTopicGrid } from "@/components/forums/ForumTopics";
 import TwitterWall from "@/components/social/TwitterWall";
+import MyFavoritesFeed from "@/components/home/MyFavoritesFeed";
 import Link from "next/link";
 import { Zap, TrendingUp, Users, MessageSquare } from "lucide-react";
 
@@ -62,6 +63,9 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
           ))}
         </div>
       </section>
+
+      {/* Personalised "Para ti" feed */}
+      <MyFavoritesFeed lang={lang} />
 
       {/* Main news feed */}
       <section>

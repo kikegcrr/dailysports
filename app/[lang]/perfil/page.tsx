@@ -3,6 +3,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Star, Bookmark, MessageSquare, Settings, LogOut, User } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import FavoritesManager from "@/components/favorites/FavoritesManager";
+import FavoritesSummary from "@/components/favorites/FavoritesSummary";
+import { useFavorites } from "@/lib/favorites-context";
 
 export default function ProfilePage() {
   const { lang }  = useParams() as { lang: string };
@@ -57,6 +60,10 @@ export default function ProfilePage() {
   }
 
   // ── Logged in ─────────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { favorites } = useFavorites();
+  const favCount = favorites.leagues.size + favorites.teams.size + favorites.sports.size + favorites.creators.size + favorites.players.size;
+
   const username  = user.user_metadata?.username || user.email?.split("@")[0] || "Usuario";
   const email     = user.email ?? "";
   const letter    = username.charAt(0).toUpperCase();
@@ -90,7 +97,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { icon: <Bookmark size={20} className="text-gold-400" />, label: "Guardados", value: "0" },
-          { icon: <Star size={20} className="text-gold-400" />,     label: "Favoritos", value: "0" },
+          { icon: <Star size={20} className="text-gold-400" />,     label: "Favoritos", value: String(favCount) },
           { icon: <MessageSquare size={20} className="text-gold-400" />, label: "Posts", value: "0" },
         ].map((s) => (
           <div key={s.label} className="bg-sport-card border border-sport-border rounded-2xl p-4 text-center">
@@ -138,6 +145,22 @@ export default function ProfilePage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── Favorites: summary (what you have saved) ──────────────────────── */}
+      <div>
+        <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <Star size={16} className="text-gold-400" fill="currentColor" /> Mis favoritos
+        </h2>
+        <FavoritesSummary showDbWarning />
+      </div>
+
+      {/* ── Favorites: manager (add / remove) ─────────────────────────────── */}
+      <div>
+        <h2 className="font-semibold text-white mb-4 flex items-center gap-2 text-sm text-gray-400">
+          Añadir o quitar favoritos
+        </h2>
+        <FavoritesManager lang={lang} compact />
       </div>
     </div>
   );

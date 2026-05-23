@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { LiveMatch, MatchEvent } from "@/app/api/scores/route";
+import FavoriteButton from "@/components/favorites/FavoriteButton";
 
 interface EventMarker {
   event: MatchEvent;
@@ -375,9 +376,17 @@ export default function InteractivePitch({ match }: PitchProps) {
                     }`}
                   >
                     <span>{EVENT_ICONS[event.type]}</span>
-                    <span className="text-sm font-medium text-white">{event.player || event.description}</span>
+                    <span className="text-sm font-medium text-white flex-1">{event.player || event.description}</span>
                     {event.assist && (
                       <span className="text-xs text-gray-500">({event.assist})</span>
+                    )}
+                    {event.player && (
+                      <FavoriteButton
+                        type="player"
+                        value={event.player}
+                        label={event.player}
+                        size="xs"
+                      />
                     )}
                   </div>
                   <span className="text-xs text-gray-600 w-8 text-center shrink-0">

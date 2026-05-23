@@ -2,16 +2,21 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { LiveMatch } from "@/app/api/scores/route";
 import MatchCard from "./MatchCard";
-import { Radio, Wifi, WifiOff, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { Radio, Wifi, WifiOff, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { useFavorites } from "@/lib/favorites-context";
+import FavoriteButton from "@/components/favorites/FavoriteButton";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
-type SportTab = "all" | "football" | "basketball" | "tennis";
-type LeagueFilter = "all" | "laliga" | "champions" | "premier" | "seriea" | "bundesliga" | "ligue1" | "ligaportugal" | "europa" | "nba" | "atp" | "wta";
+type SportTab = "all" | "football" | "basketball" | "tennis" | "myfeed";
+type LeagueFilter = "all" | "laliga" | "champions" | "premier" | "seriea" | "bundesliga" | "ligue1" | "ligaportugal" | "europa" | "nba" | "euroleague" | "acb" | "atp" | "wta";
 
 const SPORT_TABS: { key: SportTab; label: string; icon: string }[] = [
   { key: "all",        label: "Todo",       icon: "🏆" },
   { key: "football",   label: "Fútbol",     icon: "⚽" },
   { key: "basketball", label: "Baloncesto", icon: "🏀" },
   { key: "tennis",     label: "Tenis",      icon: "🎾" },
+  { key: "myfeed",     label: "Para mí",    icon: "⭐" },
 ];
 
 const LEAGUE_FILTERS: { key: LeagueFilter; label: string; sport: SportTab }[] = [
@@ -25,6 +30,8 @@ const LEAGUE_FILTERS: { key: LeagueFilter; label: string; sport: SportTab }[] = 
   { key: "ligaportugal", label: "Portugal",   sport: "football" },
   { key: "europa",       label: "Europa Lg",  sport: "football" },
   { key: "nba",          label: "NBA",        sport: "basketball" },
+  { key: "euroleague",   label: "EuroLeague", sport: "basketball" },
+  { key: "acb",          label: "ACB",        sport: "basketball" },
   { key: "atp",          label: "ATP",        sport: "tennis" },
   { key: "wta",          label: "WTA",        sport: "tennis" },
 ];
@@ -63,6 +70,9 @@ function dayLabel(d: Date, today: Date): { short: string; sub: string } {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveScoresFeed() {
   const today = new Date();
+  const { favorites } = useFavorites();
+  const params = useParams();
+  const lang = (params?.lang as string) || "es";
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(today));
   const [matches,      setMatches]      = useState<LiveMatch[]>([]);
@@ -86,13 +96,14 @@ export default function LiveScoresFeed() {
     setLoading(true);
     setMatches([]);
 
-    const params = new URLSearchParams();
-    if (sport  !== "all") params.set("sport",  sport);
-    if (league !== "all") params.set("league", league);
-    params.set("date", toESPN(selectedDate));
-    if (isSameDay(selectedDate, today)) params.set("today", "1");
+    const qp = new URLSearchParams();
+    // "Para mí" fetches everything and filters client-side
+    if (sport !== "all" && sport !== "myfeed") qp.set("sport", sport);
+    if (league !== "all") qp.set("league", league);
+    qp.set("date", toESPN(selectedDate));
+    if (isSameDay(selectedDate, today)) qp.set("today", "1");
 
-    const es = new EventSource(`/api/scores/stream?${params}`);
+    const es = new EventSource(`/api/scores/stream?${qp}`);
     esRef.current = es;
 
     es.onopen    = () => setConnected(true);
@@ -101,9 +112,12 @@ export default function LiveScoresFeed() {
       try {
         const data: LiveMatch[] = JSON.parse(e.data);
         setMatches(data);
-        setLiveCount(data.filter((m) => m.status === "live").length);
+        const live = data.filter((m) => m.status === "live").length;
+        setLiveCount(live);
         setLastUpdate(new Date());
         setLoading(false);
+        // Auto-expand finished section when there are no live games
+        if (live === 0) setShowFinished(true);
       } catch { /* malformed — ignore */ }
     };
   }, [selectedDate, sport, league]);
@@ -121,12 +135,21 @@ export default function LiveScoresFeed() {
     (f) => f.sport === "all" || f.sport === sport || sport === "all"
   );
 
-  const live      = matches.filter((m) => m.status === "live" || m.status === "halftime");
-  const scheduled = matches.filter((m) => m.status === "scheduled");
-  const finished  = matches.filter((m) => m.status === "finished");
+  // "Para mí": filter by user's favourite leagues (client-side)
+  const displayMatches = sport === "myfeed" && favorites.leagues.size > 0
+    ? matches.filter((m) => favorites.leagues.has(m.league))
+    : matches;
+
+  const live      = displayMatches.filter((m) => m.status === "live" || m.status === "halftime");
+  const scheduled = displayMatches.filter((m) => m.status === "scheduled");
+  const finished  = displayMatches.filter((m) => m.status === "finished");
 
   const sportOf = (m: LiveMatch): "basketball" | "tennis" | "football" =>
-    m.league === "nba" ? "basketball" : (m.league === "atp" || m.league === "wta") ? "tennis" : "football";
+    (m.league === "nba" || m.league === "euroleague" || m.league === "acb")
+      ? "basketball"
+      : (m.league === "atp" || m.league === "wta")
+      ? "tennis"
+      : "football";
 
   return (
     <div className="space-y-4">
@@ -134,7 +157,7 @@ export default function LiveScoresFeed() {
       {/* ── Date navigator ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-1">
         <button
-          onClick={() => { setSelectedDate((d) => addDays(d, -1)); setShowFinished(false); }}
+          onClick={() => { const nd = addDays(selectedDate, -1); setSelectedDate(nd); setShowFinished(!isSameDay(nd, today)); }}
           disabled={isSameDay(selectedDate, addDays(today, -3))}
           className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-sport-card disabled:opacity-30 transition-colors shrink-0"
         >
@@ -149,7 +172,7 @@ export default function LiveScoresFeed() {
             return (
               <button
                 key={toESPN(d)}
-                onClick={() => { setSelectedDate(new Date(d)); setShowFinished(false); }}
+                onClick={() => { setSelectedDate(new Date(d)); setShowFinished(!isSameDay(d, today)); }}
                 className={`flex flex-col items-center px-2.5 py-2 rounded-xl min-w-[60px] text-center transition-all ${
                   sel
                     ? "bg-gold-500/20 border border-gold-500/40 text-gold-400"
@@ -166,7 +189,7 @@ export default function LiveScoresFeed() {
         </div>
 
         <button
-          onClick={() => { setSelectedDate((d) => addDays(d, 1)); setShowFinished(false); }}
+          onClick={() => { const nd = addDays(selectedDate, 1); setSelectedDate(nd); setShowFinished(!isSameDay(nd, today)); }}
           disabled={isSameDay(selectedDate, addDays(today, 3))}
           className="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-sport-card disabled:opacity-30 transition-colors shrink-0"
         >
@@ -210,32 +233,75 @@ export default function LiveScoresFeed() {
         {SPORT_TABS.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => { setSport(tab.key); setLeague("all"); }}
+            onClick={() => { setSport(tab.key as SportTab); setLeague("all"); }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               sport === tab.key
-                ? "bg-gold-500/20 text-gold-400 border border-gold-500/40"
-                : "bg-sport-card border border-sport-border text-gray-400 hover:text-white"
+                ? tab.key === "myfeed"
+                  ? "bg-gold-500/30 text-gold-300 border border-gold-500/60"
+                  : "bg-gold-500/20 text-gold-400 border border-gold-500/40"
+                : tab.key === "myfeed"
+                  ? "bg-gold-500/10 border border-gold-500/20 text-gold-500 hover:bg-gold-500/20"
+                  : "bg-sport-card border border-sport-border text-gray-400 hover:text-white"
             }`}
           >
-            {tab.icon} {tab.label}
+            {tab.key === "myfeed"
+              ? <Star size={13} fill="currentColor" />
+              : tab.icon}{" "}
+            {tab.label}
+            {tab.key === "myfeed" && favorites.leagues.size > 0 && (
+              <span className="ml-1 text-[10px] bg-gold-500/30 text-gold-300 px-1.5 py-0.5 rounded-full font-bold">
+                {favorites.leagues.size}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* ── League chips ─────────────────────────────────────────────────── */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {availableLeagues.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setLeague(f.key)}
-            className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-              league === f.key ? "bg-white/15 text-white" : "text-gray-500 hover:text-gray-300"
-            }`}
+      {/* ── League chips (hidden in Para mí mode) ────────────────────────── */}
+      {sport !== "myfeed" && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {availableLeagues.map((f) => (
+            <div key={f.key} className="flex items-center shrink-0 group/chip">
+              <button
+                onClick={() => setLeague(f.key)}
+                className={`px-3 py-1 rounded-l-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                  league === f.key ? "bg-white/15 text-white" : "text-gray-500 hover:text-gray-300"
+                } ${f.key === "all" ? "rounded-lg" : ""}`}
+              >
+                {f.label}
+              </button>
+              {f.key !== "all" && (
+                <div className="opacity-0 group-hover/chip:opacity-100 transition-opacity">
+                  <FavoriteButton
+                    type="league"
+                    value={f.key}
+                    label={f.label}
+                    size="xs"
+                    className="px-1.5 py-1 rounded-r-lg border-l border-white/10"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Para mí: no favorites set ────────────────────────────────────── */}
+      {sport === "myfeed" && favorites.leagues.size === 0 && (
+        <div className="text-center py-14 text-gray-500">
+          <Star size={40} className="mx-auto mb-3 text-gold-500/40" />
+          <p className="font-medium text-gray-300">No tienes ligas favoritas guardadas</p>
+          <p className="text-xs mt-1 text-gray-600 mb-5">
+            Añade tus ligas preferidas en tu perfil y aparecerán aquí.
+          </p>
+          <Link
+            href={`/${lang}/perfil`}
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-semibold text-sm transition-colors"
           >
-            {f.label}
-          </button>
-        ))}
-      </div>
+            <Star size={14} fill="currentColor" /> Ir a favoritos
+          </Link>
+        </div>
+      )}
 
       {/* ── Match list ───────────────────────────────────────────────────── */}
       {loading ? (
@@ -244,11 +310,16 @@ export default function LiveScoresFeed() {
             <div key={i} className="h-20 bg-sport-card border border-sport-border rounded-2xl animate-pulse" />
           ))}
         </div>
-      ) : matches.length === 0 ? (
+      ) : sport === "myfeed" && favorites.leagues.size === 0 ? null
+        : displayMatches.length === 0 ? (
         <div className="text-center py-16 text-gray-500">
           <span className="text-4xl block mb-3">📭</span>
-          <p className="font-medium">Sin partidos para este día</p>
-          <p className="text-xs mt-1 text-gray-600">Prueba con otra fecha o liga</p>
+          <p className="font-medium">
+            {sport === "myfeed" ? "Sin partidos en tus ligas favoritas" : "Sin partidos para este día"}
+          </p>
+          <p className="text-xs mt-1 text-gray-600">
+            {sport === "myfeed" ? "Prueba con otra fecha" : "Prueba con otra fecha o liga"}
+          </p>
         </div>
       ) : (
         <div className="space-y-5">
